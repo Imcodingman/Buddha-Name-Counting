@@ -274,7 +274,7 @@
       return h;
     }
 
-    var first = !multi || (ch && ch.juan === '卷上');
+    var first = !multi || (ch && !!ch.juan);
     h += '<div class="ch-head">' + (multi ? '<span class="sutra">' + su.title + (ch && ch.juan ? ' ' + ch.juan : '') + '</span>' : '') +
       '<h2>' + esc(ch ? ch.title : su.title) + '</h2>' +
       (first ? '<span class="by">' + su.by + '</span>' : '') + '</div>';

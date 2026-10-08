@@ -43,12 +43,16 @@ PHRASES = {
     # Readings as printed in 达缘讲堂《地藏菩萨本愿经》全文拼音 (乾隆藏 edition).
     '白衣': 'bái yī', '白虎': 'bái hǔ', '白毫': 'bái háo', '觉华': 'jué huá',
     '雨无量': 'yù wú liàng', '苦乐法': 'kǔ yào fǎ', '刚强': 'gāng qiáng',
+    '重白': 'chóng bó', '重海': 'chóng hǎi', '长钉': 'cháng dīng', '还复': 'huán fù',
+    '大乘': 'dà shèng', '愿乐': 'yuàn yào', '攒': 'cuán', '之分': 'zhī fèn',
+    '戟中': 'jǐ zhòng', '或中口': 'huò zhòng kǒu', '或中腹': 'huò zhòng fù',
+    '斗诤': 'dòu zhēng', '斗乱': 'dòu luàn', '喑哑': 'yīn yǎ', '悭吝': 'qiān lìn',
 }
 # Characters whose reading is (nearly) fixed in sutra recitation.
 SINGLE = {
     '刹': 'chà', '阿': 'ā', '般': 'bō', '祇': 'qí', '伽': 'qié', '佛': 'fó', '一': 'yī',
     '不': 'bù', '尽': 'jìn', '藏': 'zàng', '行': 'xíng', '当': 'dāng', '为': 'wèi', '那': 'nà', '横': 'hèng',
-    '白': 'bó', '华': 'huā',
+    '白': 'bó', '华': 'huā', '调': 'tiáo',
 }
 # 为 reads wéi ("to be / to act as") in these contexts; elsewhere wèi ("for").
 WEI = ['充为劫', '身为大', '尚为菩', '所为善', '为虑', '名为', '铁为', '等为', '为善为恶',
@@ -69,7 +73,13 @@ XINJING = [
 XINJING_MANTRA = '揭谛揭谛，波罗揭谛，\n波罗僧揭谛，菩提萨婆诃。'
 
 # Bring the CBETA (大正藏) text in line with the 乾隆藏 wording used by the reference edition.
-TEXT_FIXES = [('彊', '强'), ('毘', '毗'), ('销', '消'), ('一沙一界', '一沙之界'), ('果位已来', '果位以来')]
+TEXT_FIXES = [
+    ('彊', '强'), ('毘', '毗'), ('销', '消'), ('一沙一界', '一沙之界'), ('果位已来', '果位以来'),
+    ('傥', '倘'), ('支节', '肢节'), ('稣', '苏'), ('辠', '罪'), ('麁', '粗'), ('点污', '玷污'), ('啗', '噉'),
+    ('洋铜', '烊铜'), ('羗', '羌'), ('累劫已来', '累劫以来'), ('七日已来', '七日以来'), ('隣', '邻'), ('鼈', '鳖'),
+    ('三涂', '三塗'), ('婬', '淫'), ('鬪', '斗'), ('瘖痖', '喑哑'), ('岐路', '歧路'), ('氷', '冰'),
+    ('然油灯', '燃油灯'), ('悋', '吝'), ('旛', '幡'),
+]
 
 # Opening / closing liturgy, transcribed from the reference edition with its pinyin.
 # Each entry: (kind, text, pinyin, note). kind: h heading, n note, c invocation, v verse, p prose.
@@ -261,7 +271,8 @@ def main():
     setup_pinyin()
     body = apply_text_fixes(parse_dizang(src))
     body[0]['juan'] = '卷上'
-    body[6]['juan'] = '卷下'
+    body[4]['juan'] = '卷中'
+    body[9]['juan'] = '卷下'
     dizang = add_pinyin([liturgy('开经', DIZANG_PRE)] + body + [liturgy('结经回向', DIZANG_POST)])
     xinjing = add_pinyin([{
         'title': '般若波罗蜜多心经',
