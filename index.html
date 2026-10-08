@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="念佛计数">
+<meta name="theme-color" content="#F2EFE6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121614" media="(prefers-color-scheme: dark)">
+<meta name="description" content="念佛计数 · 每日功课 · 地藏经读诵 · 修行统计">
+<title>念佛计数</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <main id="scroll" class="scroll"><div id="view"></div></main>
+  <nav class="tabs" id="tabs">
+    <button data-act="go" data-v="count">
+      <svg class="ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg>
+      <span>念佛</span>
+    </button>
+    <button data-act="go" data-v="hw">
+      <svg class="ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8.5 10l2.2 2.2 4.3-4.4"/><path d="M8.5 16h7"/></svg>
+      <span>功课</span>
+    </button>
+    <button data-act="go" data-v="read">
+      <svg class="ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 5.8-1 8.5 1 2.7-2 5.5-2.2 8.5-1v13.5c-3-1.2-5.8-1-8.5 1-2.7-2-5.5-2.2-8.5-1z"/><path d="M12 6.5v13.5"/></svg>
+      <span>经文</span>
+    </button>
+    <button data-act="go" data-v="stats">
+      <svg class="ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 20V12"/><path d="M12 20V5"/><path d="M18.5 20v-6"/><path d="M3.5 20.5h17"/></svg>
+      <span>统计</span>
+    </button>
+  </nav>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
