@@ -152,6 +152,9 @@ h1, h2, p { margin: 0; }
 .para { margin: 0 0 1.1em; font-family: var(--serif); line-height: 2.05; letter-spacing: 1px; }
 .para.prose { text-indent: 2em; text-align: justify; }
 .para.verse { padding-left: 2em; white-space: pre-line; }
+.para.py { line-height: 2.6; letter-spacing: 0; text-align: left; }
+.para ruby { ruby-position: over; ruby-align: center; margin: 0 .14em; }
+.para rt { font-family: var(--sans); font-size: .46em; letter-spacing: 0; color: var(--sub); font-weight: 400; }
 .msg { margin: 40px 0; text-align: center; font-size: 15px; color: var(--sub); }
 .reader-foot { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; margin-top: 8px; border-top: 1px solid var(--line); }
 .finish { height: 52px; border-radius: 14px; font-family: var(--serif); font-size: 17px; letter-spacing: 2px; }

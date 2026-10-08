@@ -1,12 +1,17 @@
 (function () {
   'use strict';
 
-  var SUTRA_URL = 'data/dizang.json';
+  var SUTRAS = [
+    { id: 'dzj', name: '地藏经', title: '地藏菩萨本愿经', by: '唐 于阗国三藏沙门 实叉难陀 译', url: 'data/dizang.json',
+      src: '经文据 CBETA 电子佛典《大正藏》第 13 册 No. 412，简体转写' },
+    { id: 'xj', name: '心经', title: '般若波罗蜜多心经', by: '唐 三藏法师 玄奘 译', url: 'data/xinjing.json',
+      src: '通行读诵本，参《大正藏》第 8 册 No. 251' }
+  ];
   var STORE_KEY = 'nianfo-record-v1';
   var NAMES0 = ['南无阿弥陀佛', '南无地藏王菩萨', '南无观世音菩萨', '南无本师释迦牟尼佛'];
   var ITEMS0 = [
-    { id: 'xj', name: '心经', target: 7, unit: '遍' },
-    { id: 'dzj', name: '地藏经', target: 1, unit: '部', sutra: true }
+    { id: 'xj', name: '心经', target: 7, unit: '遍', sutra: 'xj' },
+    { id: 'dzj', name: '地藏经', target: 1, unit: '部', sutra: 'dzj' }
   ];
   var GOALS = [108, 1080, 3000, 10000];
   var WK = ['日', '一', '二', '三', '四', '五', '六'];
@@ -21,6 +26,15 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function sutraById(id) { return SUTRAS.filter(function (x) { return x.id === id; })[0] || SUTRAS[0]; }
+  // Which sutra a homework item is read from ('dzj' / 'xj' / null). Older saves used sutra: true for 地藏经.
+  function sutraOf(it) {
+    if (typeof it.sutra === 'string') return it.sutra;
+    if (it.sutra === true) return 'dzj';
+    if (it.id === 'xj' || it.name.indexOf('心经') >= 0) return 'xj';
+    return null;
+  }
+  function itemForSutra(sid) { return S.items.filter(function (x) { return sutraOf(x) === sid; })[0]; }
   function loadSaved() {
     try { var s = window.localStorage.getItem(STORE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
   }
@@ -33,9 +47,11 @@
     goal: saved.goal || 1080,
     items: saved.items || ITEMS0.map(function (x) { return Object.assign({}, x); }),
     rec: saved.rec || {},
-    ch: saved.ch || 0,
+    sid: saved.sid || 'dzj',
+    chs: saved.chs || { dzj: saved.ch || 0, xj: 0 },
     fs: saved.fs || 19,
-    sutra: null, sutraErr: false, sutraLoading: false, toc: false,
+    py: !!saved.py,
+    texts: {}, loading: {}, errs: {}, toc: false,
     addingName: false, newName: '',
     editHw: false, hwName: '', hwTarget: '7', hwUnit: '遍',
     selDay: null, monthOff: 0, pulse: 0, credited: false
@@ -48,7 +64,7 @@
   function persist() {
     try {
       window.localStorage.setItem(STORE_KEY, JSON.stringify({
-        names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, ch: S.ch, fs: S.fs
+        names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, fs: S.fs, py: S.py
       }));
     } catch (e) {}
   }
@@ -81,21 +97,34 @@
     set(next);
   }
 
-  function loadSutra() {
-    if (S.sutra || S.sutraLoading) return;
-    S.sutraLoading = true; S.sutraErr = false;
+  function loadSutra(sid) {
+    if (S.texts[sid] || S.loading[sid]) return;
+    S.loading[sid] = true; S.errs[sid] = false;
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', SUTRA_URL, true);
+    xhr.open('GET', sutraById(sid).url, true);
     xhr.onload = function () {
-      S.sutraLoading = false;
+      S.loading[sid] = false;
       try {
-        if (xhr.status >= 200 && xhr.status < 300) { S.sutra = JSON.parse(xhr.responseText); }
-        else S.sutraErr = true;
-      } catch (e) { S.sutraErr = true; }
+        if (xhr.status >= 200 && xhr.status < 300) S.texts[sid] = JSON.parse(xhr.responseText);
+        else S.errs[sid] = true;
+      } catch (e) { S.errs[sid] = true; }
       render();
     };
-    xhr.onerror = function () { S.sutraLoading = false; S.sutraErr = true; render(); };
+    xhr.onerror = function () { S.loading[sid] = false; S.errs[sid] = true; render(); };
     xhr.send();
+  }
+
+  // Paragraph text with per-character pinyin (p: one token per non-space char, '_' for punctuation).
+  function paraHtml(p) {
+    if (!S.py || !p.p) return esc(p.t);
+    var toks = p.p.split(' '), k = 0, out = '';
+    for (var i = 0; i < p.t.length; i++) {
+      var c = p.t.charAt(i);
+      if (/\s/.test(c)) { out += c; continue; }
+      var y = toks[k++];
+      out += (y && y !== '_') ? '<ruby>' + esc(c) + '<rt>' + y + '</rt></ruby>' : esc(c);
+    }
+    return out;
   }
 
   function isFull(day) {
@@ -174,7 +203,7 @@
       c += '<div class="stepper"><button class="minus" data-act="hwDec" data-v="' + esc(it.id) + '" aria-label="减一">−</button>' +
         '<div class="mid"><b class="num">' + n + '</b><span> / ' + it.target + ' ' + esc(unit) + '</span></div>' +
         '<button class="plus btn-accent" data-act="hwInc" data-v="' + esc(it.id) + '">记一' + esc(unit) + '</button></div>';
-      if (it.sutra && !S.editHw) c += '<button class="link" data-act="go" data-v="read">打开经文读诵 →</button>';
+      if (sutraOf(it) && !S.editHw) c += '<button class="link" data-act="openSutra" data-v="' + sutraOf(it) + '">打开经文读诵 →</button>';
       c += '</div>';
       return c;
     });
@@ -198,50 +227,67 @@
 
   /* ============ 经文 ============ */
   function viewRead() {
-    loadSutra();
-    var chs = S.sutra || [];
-    var idx = Math.min(S.ch, Math.max(0, chs.length - 1));
+    var su = sutraById(S.sid);
+    loadSutra(su.id);
+    var chs = S.texts[su.id] || [];
+    var err = S.errs[su.id];
+    var idx = Math.min(S.chs[su.id] || 0, Math.max(0, chs.length - 1));
     var ch = chs[idx];
-    var dzj = S.items.filter(function (x) { return x.sutra; })[0];
+    var multi = chs.length > 1;
+    var item = itemForSutra(su.id);
     var isLast = chs.length > 0 && idx === chs.length - 1;
 
-    var h = '<div class="reader"><div class="reader-bar">' +
-      '<button class="pill" data-act="toggleToc">' + (S.toc ? '返回经文' : '目录') + '</button>' +
-      '<span class="date">第 ' + (idx + 1) + ' / ' + (chs.length || 13) + ' 品</span>' +
+    var h = '<div class="reader"><div class="hscroll" style="margin-bottom:12px">';
+    SUTRAS.forEach(function (x) {
+      h += '<button class="chip' + (x.id === su.id ? ' on' : '') + '" data-act="openSutra" data-v="' + x.id + '">' + x.name + '</button>';
+    });
+    h += '<button class="chip' + (S.py ? ' on' : '') + '" data-act="togglePy" aria-pressed="' + S.py + '">拼音</button></div>';
+
+    h += '<div class="reader-bar">' +
+      (multi ? '<button class="pill" data-act="toggleToc">' + (S.toc ? '返回经文' : '目录') + '</button>' +
+        '<span class="date">第 ' + (idx + 1) + ' / ' + chs.length + ' 品</span>'
+        : '<span class="date">' + su.title + '</span>') +
       '<div style="display:flex;gap:6px"><button class="round" style="font-size:14px" data-act="fsDown" aria-label="字号减小">A−</button>' +
       '<button class="round" style="font-size:18px" data-act="fsUp" aria-label="字号增大">A+</button></div></div>';
 
-    if (S.toc) {
+    if (S.toc && multi) {
       h += '<div class="toc">';
       chs.forEach(function (c, i) {
         h += '<button class="' + (i === idx ? 'cur' : '') + '" data-act="pickCh" data-v="' + i + '"><span class="n">' + (i + 1) + '</span><span>' + esc(c.title) + '</span></button>';
       });
-      if (!chs.length) h += '<p class="msg">' + (S.sutraErr ? '目录暂时没有加载出来。' : '加载中…') + '</p>';
       h += '</div></div>';
       return h;
     }
 
-    h += '<div class="ch-head"><span class="sutra">地藏菩萨本愿经</span><h2>' + esc(ch ? ch.title : '地藏菩萨本愿经') + '</h2>' +
-      (idx === 0 ? '<span class="by">唐 于阗国三藏沙门 实叉难陀 译</span>' : '') + '</div>';
+    h += '<div class="ch-head">' + (multi ? '<span class="sutra">' + su.title + '</span>' : '') +
+      '<h2>' + esc(ch ? ch.title : su.title) + '</h2>' +
+      (idx === 0 ? '<span class="by">' + su.by + '</span>' : '') + '</div>';
 
-    if (!S.sutra && !S.sutraErr) h += '<p class="msg">经文加载中…</p>';
-    if (S.sutraErr) h += '<p class="msg">经文暂时没有加载出来。<br><button class="link" style="align-self:center" data-act="retrySutra">点此重试</button></p>';
+    if (!S.texts[su.id] && !err) h += '<p class="msg">经文加载中…</p>';
+    if (err) h += '<p class="msg">经文暂时没有加载出来。<br><button class="link" style="align-self:center" data-act="retrySutra">点此重试</button></p>';
 
     if (ch) {
       ch.paras.forEach(function (p) {
-        h += '<p class="para ' + (p.v ? 'verse' : 'prose') + '" style="font-size:' + S.fs + 'px">' + esc(p.t) + '</p>';
+        h += '<p class="para ' + (p.v ? 'verse' : 'prose') + (S.py ? ' py' : '') + '" style="font-size:' + S.fs + 'px">' + paraHtml(p) + '</p>';
       });
     }
 
     h += '<div class="reader-foot">';
-    if (isLast && dzj && !S.credited) h += '<button class="finish btn-accent" data-act="finishSutra">读诵圆满 · 记入今日功课</button>';
-    if (isLast && dzj && S.credited) {
-      var tk = dkey(new Date());
-      h += '<p class="credited">已记入今日功课：' + esc(dzj.name) + ' ' + ((S.rec[tk] && S.rec[tk].h[dzj.id]) || 0) + ' ' + esc(dzj.unit || '部') + '</p>';
+    if (isLast && item) {
+      if (S.credited) {
+        var tk = dkey(new Date());
+        var n = (S.rec[tk] && S.rec[tk].h[item.id]) || 0;
+        h += '<p class="credited">已记入今日功课：' + esc(item.name) + ' ' + n + ' / ' + item.target + ' ' + esc(item.unit || '遍') + '</p>';
+        if (!multi && n < item.target) h += '<button class="nav-btn" data-act="readAgain">再读一遍 · 回到开头</button>';
+      } else {
+        h += '<button class="finish btn-accent" data-act="finishSutra">读诵圆满 · 记入今日功课</button>';
+      }
     }
-    h += '<div class="grid2"><button class="nav-btn" data-act="prevCh"' + (idx > 0 ? '' : ' disabled') + '>‹ 上一品</button>' +
-      '<button class="nav-btn" data-act="nextCh"' + (chs.length && idx < chs.length - 1 ? '' : ' disabled') + '>下一品 ›</button></div>';
-    h += '<p class="src">经文据 CBETA 电子佛典《大正藏》第 13 册 No. 412，简体转写</p></div></div>';
+    if (multi) {
+      h += '<div class="grid2"><button class="nav-btn" data-act="prevCh"' + (idx > 0 ? '' : ' disabled') + '>‹ 上一品</button>' +
+        '<button class="nav-btn" data-act="nextCh"' + (idx < chs.length - 1 ? '' : ' disabled') + '>下一品 ›</button></div>';
+    }
+    h += '<p class="src">' + su.src + (S.py ? '<br>拼音按佛经传统读音标注，个别多音字如有出入请以法师读诵为准' : '') + '</p></div></div>';
     return h;
   }
 
@@ -355,6 +401,13 @@
     }
   }
 
+  function setCh(i) {
+    var chs = Object.assign({}, S.chs);
+    chs[S.sid] = i;
+    set({ chs: chs, toc: false, credited: false });
+    toTop();
+  }
+
   var actions = {
     go: function (v) { set({ tab: v, toc: false }); toTop(); },
     pick: function (v) { set({ cur: +v }); },
@@ -386,29 +439,35 @@
       if (!nm) { toast('请填写功课名称'); return; }
       if (!(tg > 0)) { toast('每日数量需大于 0'); return; }
       var item = { id: 'h' + Date.now(), name: nm, target: Math.min(tg, 9999), unit: (S.hwUnit || '遍').trim() || '遍' };
-      if (nm.indexOf('地藏') >= 0 && !S.items.some(function (x) { return x.sutra; })) item.sutra = true;
+      SUTRAS.forEach(function (su) {
+        if (!item.sutra && nm.indexOf(su.name.slice(0, 2)) >= 0 && !itemForSutra(su.id)) item.sutra = su.id;
+      });
+      if (!item.sutra) item.sutra = null;
       set({ items: S.items.concat([item]), hwName: '', hwTarget: '7', hwUnit: '遍', editHw: false });
     },
 
+    openSutra: function (v) { set({ tab: 'read', sid: sutraById(v).id, toc: false, credited: false }); toTop(); },
+    togglePy: function () { set({ py: !S.py }); },
     toggleToc: function () { set({ toc: !S.toc }); toTop(); },
-    pickCh: function (v) { set({ ch: +v, toc: false, credited: false }); toTop(); },
+    pickCh: function (v) { setCh(+v); },
     fsUp: function () { set({ fs: Math.min(27, S.fs + 2) }); },
     fsDown: function () { set({ fs: Math.max(15, S.fs - 2) }); },
-    prevCh: function () { if (S.ch > 0) { set({ ch: S.ch - 1, credited: false }); toTop(); } },
-    nextCh: function () { if (S.sutra && S.ch < S.sutra.length - 1) { set({ ch: S.ch + 1, credited: false }); toTop(); } },
-    retrySutra: function () { S.sutraErr = false; render(); },
+    prevCh: function () { var c = S.chs[S.sid] || 0; if (c > 0) setCh(c - 1); },
+    nextCh: function () { var t = S.texts[S.sid], c = S.chs[S.sid] || 0; if (t && c < t.length - 1) setCh(c + 1); },
+    retrySutra: function () { S.errs[S.sid] = false; render(); },
     finishSutra: function () {
-      var dzj = S.items.filter(function (x) { return x.sutra; })[0];
-      if (!dzj) return;
+      var item = itemForSutra(S.sid);
+      if (!item) return;
       S.credited = true;
-      bump('h', dzj.id, 1);
+      bump('h', item.id, 1);
     },
+    readAgain: function () { set({ credited: false }); toTop(); },
 
     monthPrev: function () { set({ monthOff: S.monthOff - 1 }); },
     monthNext: function () { if (S.monthOff < 0) set({ monthOff: S.monthOff + 1 }); },
     pickDay: function (v) { set({ selDay: v }); },
     exportData: function () {
-      copyText(JSON.stringify({ app: 'nianfo', v: 1, names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, ch: S.ch, fs: S.fs }));
+      copyText(JSON.stringify({ app: 'nianfo', v: 1, names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, fs: S.fs, py: S.py }));
     },
     importData: function () {
       var txt = window.prompt('请粘贴之前复制的备份内容：', '');
@@ -420,7 +479,8 @@
         return;
       }
       if (!window.confirm('恢复备份会覆盖本机当前的全部记录，确定吗？')) return;
-      set({ names: d.names, cur: d.cur || 0, goal: d.goal || 1080, items: d.items, rec: d.rec, ch: d.ch || 0, fs: d.fs || 19, selDay: null });
+      set({ names: d.names, cur: d.cur || 0, goal: d.goal || 1080, items: d.items, rec: d.rec, sid: d.sid || 'dzj',
+        chs: d.chs || { dzj: d.ch || 0, xj: 0 }, fs: d.fs || 19, py: !!d.py, selDay: null });
       toast('已恢复备份');
     }
   };
