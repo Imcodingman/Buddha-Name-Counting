@@ -153,6 +153,12 @@ h1, h2, p { margin: 0; }
 .para.prose { text-indent: 2em; text-align: justify; }
 .para.verse { padding-left: 2em; white-space: pre-line; }
 .para.py { line-height: 2.6; letter-spacing: 0; text-align: left; }
+.para.phead { text-align: center; font-weight: 600; color: var(--accent); letter-spacing: 3px; margin: 1.4em 0 .2em; }
+.para.pn { text-align: center; color: var(--sub); margin-bottom: .6em; }
+.para.pcall { text-align: center; font-weight: 600; color: var(--accent); }
+.para.verse.py, .para.phead.py, .para.pcall.py, .para.pn.py { text-align: center; padding-left: 0; }
+.para .seg { display: inline-block; white-space: nowrap; }
+.pnote { font-size: .7em; font-weight: 400; color: var(--sub); margin-left: .3em; white-space: nowrap; }
 .para ruby { ruby-position: over; ruby-align: center; margin: 0 .14em; }
 .para rt { font-family: var(--sans); font-size: .46em; letter-spacing: 0; color: var(--sub); font-weight: 400; }
 .msg { margin: 40px 0; text-align: center; font-size: 15px; color: var(--sub); }

@@ -3,7 +3,7 @@
 
   var SUTRAS = [
     { id: 'dzj', name: '地藏经', title: '地藏菩萨本愿经', by: '唐 于阗国三藏沙门 实叉难陀 译', url: 'data/dizang.json',
-      src: '经文据 CBETA 电子佛典《大正藏》第 13 册 No. 412，简体转写' },
+      src: '经文据 CBETA 电子佛典《大正藏》第 13 册 No. 412 简体转写，并参照乾隆藏读诵本校订；开经、结经仪轨及拼音参照达缘讲堂读诵版' },
     { id: 'xj', name: '心经', title: '般若波罗蜜多心经', by: '唐 三藏法师 玄奘 译', url: 'data/xinjing.json',
       src: '通行读诵本，参《大正藏》第 8 册 No. 251' }
   ];
@@ -35,6 +35,12 @@
     return null;
   }
   function itemForSutra(sid) { return S.items.filter(function (x) { return sutraOf(x) === sid; })[0]; }
+  // v2 data adds the 开经 chapter in front of 地藏经 chapter 1, so older saved positions shift by one.
+  function migrateChs(d) {
+    var chs = d.chs || { dzj: d.ch || 0, xj: 0 };
+    if (d.cv !== 2 && (d.chs || d.ch)) chs = Object.assign({}, chs, { dzj: (chs.dzj || 0) + 1 });
+    return chs;
+  }
   function loadSaved() {
     try { var s = window.localStorage.getItem(STORE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
   }
@@ -48,7 +54,7 @@
     items: saved.items || ITEMS0.map(function (x) { return Object.assign({}, x); }),
     rec: saved.rec || {},
     sid: saved.sid || 'dzj',
-    chs: saved.chs || { dzj: saved.ch || 0, xj: 0 },
+    chs: migrateChs(saved),
     fs: saved.fs || 19,
     py: !!saved.py,
     texts: {}, loading: {}, errs: {}, toc: false,
@@ -64,7 +70,7 @@
   function persist() {
     try {
       window.localStorage.setItem(STORE_KEY, JSON.stringify({
-        names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, fs: S.fs, py: S.py
+        names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, cv: 2, fs: S.fs, py: S.py
       }));
     } catch (e) {}
   }
@@ -116,15 +122,20 @@
 
   // Paragraph text with per-character pinyin (p: one token per non-space char, '_' for punctuation).
   function paraHtml(p) {
+    return rubyHtml(p) + (p.note ? '<span class="pnote">' + esc(p.note) + '</span>' : '');
+  }
+  function rubyHtml(p) {
     if (!S.py || !p.p) return esc(p.t);
-    var toks = p.p.split(' '), k = 0, out = '';
+    // Verse half-lines are kept whole (class seg) so they only wrap at the space between them.
+    var verse = p.v || p.k === 'v';
+    var toks = p.p.split(' '), k = 0, out = verse ? '<span class="seg">' : '';
     for (var i = 0; i < p.t.length; i++) {
       var c = p.t.charAt(i);
-      if (/\s/.test(c)) { out += c; continue; }
+      if (/\s/.test(c)) { out += verse ? '</span>' + c + '<span class="seg">' : c; continue; }
       var y = toks[k++];
       out += (y && y !== '_') ? '<ruby>' + esc(c) + '<rt>' + y + '</rt></ruby>' : esc(c);
     }
-    return out;
+    return out + (verse ? '</span>' : '');
   }
 
   function isFull(day) {
@@ -234,6 +245,9 @@
     var idx = Math.min(S.chs[su.id] || 0, Math.max(0, chs.length - 1));
     var ch = chs[idx];
     var multi = chs.length > 1;
+    var pins = chs.filter(function (c) { return !c.x; }).length;
+    var pinNo = 0;
+    for (var ci = 0; ci <= idx && ci < chs.length; ci++) if (!chs[ci].x) pinNo++;
     var item = itemForSutra(su.id);
     var isLast = chs.length > 0 && idx === chs.length - 1;
 
@@ -245,30 +259,35 @@
 
     h += '<div class="reader-bar">' +
       (multi ? '<button class="pill" data-act="toggleToc">' + (S.toc ? '返回经文' : '目录') + '</button>' +
-        '<span class="date">第 ' + (idx + 1) + ' / ' + chs.length + ' 品</span>'
+        '<span class="date">' + (!ch || ch.x ? esc(ch ? ch.title : '') : '第 ' + pinNo + ' / ' + pins + ' 品') + '</span>'
         : '<span class="date">' + su.title + '</span>') +
       '<div style="display:flex;gap:6px"><button class="round" style="font-size:14px" data-act="fsDown" aria-label="字号减小">A−</button>' +
       '<button class="round" style="font-size:18px" data-act="fsUp" aria-label="字号增大">A+</button></div></div>';
 
     if (S.toc && multi) {
       h += '<div class="toc">';
+      var n = 0;
       chs.forEach(function (c, i) {
-        h += '<button class="' + (i === idx ? 'cur' : '') + '" data-act="pickCh" data-v="' + i + '"><span class="n">' + (i + 1) + '</span><span>' + esc(c.title) + '</span></button>';
+        h += '<button class="' + (i === idx ? 'cur' : '') + '" data-act="pickCh" data-v="' + i + '"><span class="n">' + (c.x ? '' : ++n) + '</span><span>' + esc(c.title) + '</span></button>';
       });
       h += '</div></div>';
       return h;
     }
 
-    h += '<div class="ch-head">' + (multi ? '<span class="sutra">' + su.title + '</span>' : '') +
+    var first = !multi || (ch && ch.juan === '卷上');
+    h += '<div class="ch-head">' + (multi ? '<span class="sutra">' + su.title + (ch && ch.juan ? ' ' + ch.juan : '') + '</span>' : '') +
       '<h2>' + esc(ch ? ch.title : su.title) + '</h2>' +
-      (idx === 0 ? '<span class="by">' + su.by + '</span>' : '') + '</div>';
+      (first ? '<span class="by">' + su.by + '</span>' : '') + '</div>';
 
     if (!S.texts[su.id] && !err) h += '<p class="msg">经文加载中…</p>';
     if (err) h += '<p class="msg">经文暂时没有加载出来。<br><button class="link" style="align-self:center" data-act="retrySutra">点此重试</button></p>';
 
     if (ch) {
       ch.paras.forEach(function (p) {
-        h += '<p class="para ' + (p.v ? 'verse' : 'prose') + (S.py ? ' py' : '') + '" style="font-size:' + S.fs + 'px">' + paraHtml(p) + '</p>';
+        var k = p.k || (p.v ? 'v' : 'p');
+        var cls = { h: 'phead', n: 'pn', c: 'pcall', v: 'verse', p: 'prose' }[k] || 'prose';
+        var fsz = k === 'h' ? Math.round(S.fs * 1.15) : k === 'n' ? Math.round(S.fs * 0.75) : S.fs;
+        h += '<p class="para ' + cls + (S.py ? ' py' : '') + '" style="font-size:' + fsz + 'px">' + paraHtml(p) + '</p>';
       });
     }
 
@@ -467,7 +486,7 @@
     monthNext: function () { if (S.monthOff < 0) set({ monthOff: S.monthOff + 1 }); },
     pickDay: function (v) { set({ selDay: v }); },
     exportData: function () {
-      copyText(JSON.stringify({ app: 'nianfo', v: 1, names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, fs: S.fs, py: S.py }));
+      copyText(JSON.stringify({ app: 'nianfo', v: 1, names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, cv: 2, fs: S.fs, py: S.py }));
     },
     importData: function () {
       var txt = window.prompt('请粘贴之前复制的备份内容：', '');
@@ -480,7 +499,7 @@
       }
       if (!window.confirm('恢复备份会覆盖本机当前的全部记录，确定吗？')) return;
       set({ names: d.names, cur: d.cur || 0, goal: d.goal || 1080, items: d.items, rec: d.rec, sid: d.sid || 'dzj',
-        chs: d.chs || { dzj: d.ch || 0, xj: 0 }, fs: d.fs || 19, py: !!d.py, selDay: null });
+        chs: migrateChs(d), fs: d.fs || 19, py: !!d.py, selDay: null });
       toast('已恢复备份');
     }
   };

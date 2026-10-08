@@ -25,6 +25,6 @@
 ## 文件
 
 - `index.html` / `style.css` / `app.js`：页面与逻辑，无第三方依赖
-- `data/dizang.json`：地藏经，据 CBETA 电子佛典《大正藏》第 13 册 No. 412（[cbeta-org/xml-p5](https://github.com/cbeta-org/xml-p5)）转为简体
+- `data/dizang.json`：地藏经，据 CBETA 电子佛典《大正藏》第 13 册 No. 412（[cbeta-org/xml-p5](https://github.com/cbeta-org/xml-p5)）转为简体，并参照达缘讲堂读诵版（乾隆藏）校订个别字词与读音，前后附开经（香赞、地藏菩萨偈、开经偈）与结经回向（补阙真言等、回向偈）
 - `data/xinjing.json`：心经，玄奘译通行读诵本
 - `tools/build_sutras.py`：生成上面两个文件（简体转换 + 拼音及佛经读音校正），用法见文件开头

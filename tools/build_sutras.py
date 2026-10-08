@@ -19,10 +19,10 @@ from pypinyin import Style, load_phrases_dict, load_single_dict, pinyin
 
 # Conventional readings in Buddhist recitation.
 PHRASES = {
-    '南无': 'nā mó', '阿弥陀': 'ā mí tuó', '般若': 'bō rě', '波罗蜜': 'bō luó mì',
+    '南无': 'ná mó', '阿弥陀': 'ā mí tuó', '般若': 'bō rě', '波罗蜜': 'bō luó mì',
     '菩萨': 'pú sà', '菩提': 'pú tí', '摩诃': 'mó hē', '萨埵': 'sà duǒ', '萨婆诃': 'sà pó hē',
     '优婆塞': 'yōu pó sè', '优婆夷': 'yōu pó yí', '释迦': 'shì jiā', '牟尼': 'móu ní',
-    '舍利子': 'shè lì zǐ', '舍利弗': 'shè lì fú', '毘离耶': 'pí lí yē', '摩耶': 'mó yē',
+    '舍利子': 'shè lì zǐ', '舍利弗': 'shè lì fú', '毗离耶': 'pí lí yē', '摩耶': 'mó yē',
     '佛刹': 'fó chà', '刹土': 'chà tǔ', '刹那': 'chà nà', '那由他': 'nà yóu tā',
     '揭谛': 'jiē dì', '三藐': 'sān miǎo', '阿耨': 'ā nòu', '罣碍': 'guà ài', '究竟': 'jiū jìng',
     '涅槃': 'niè pán', '三昧': 'sān mèi', '伎乐': 'jì yuè', '音乐': 'yīn yuè',
@@ -30,7 +30,7 @@ PHRASES = {
     '阎浮提': 'yán fú tí', '忉利': 'dāo lì', '羼提': 'chàn tí', '鸠槃荼': 'jiū pán tú',
     '那罗延': 'nà luó yán', '阿僧祇': 'ā sēng qí', '比丘': 'bǐ qiū', '迦楼罗': 'jiā lóu luó',
     '紧那罗': 'jǐn nà luó', '摩睺罗伽': 'mó hóu luó qié', '乾闼婆': 'qián tà pó',
-    '毘舍遮': 'pí shè zhē', '富单那': 'fù dān nà', '一切': 'yī qiè',
+    '毗舍遮': 'pí shè zhē', '富单那': 'fù dān nà', '一切': 'yī qiè',
     '相好': 'xiàng hǎo', '空相': 'kōng xiàng', '诸相': 'zhū xiàng', '宝相': 'bǎo xiàng',
     '毫相': 'háo xiàng', '无相': 'wú xiàng', '佛相': 'fó xiàng', '此相': 'cǐ xiàng',
     '长者': 'zhǎng zhě', '兜率': 'dōu shuài', '苦难': 'kǔ nàn', '灾难': 'zāi nàn',
@@ -40,11 +40,15 @@ PHRASES = {
     '其舍': 'qí shè', '弹指': 'tán zhǐ', '咽病': 'yān bìng', '供具': 'gòng jù',
     '设供': 'shè gòng', '少善': 'shǎo shàn', '间绝': 'jiàn jué', '吾难': 'wú nàn',
     '产难': 'chǎn nàn',
+    # Readings as printed in 达缘讲堂《地藏菩萨本愿经》全文拼音 (乾隆藏 edition).
+    '白衣': 'bái yī', '白虎': 'bái hǔ', '白毫': 'bái háo', '觉华': 'jué huá',
+    '雨无量': 'yù wú liàng', '苦乐法': 'kǔ yào fǎ', '刚强': 'gāng qiáng',
 }
 # Characters whose reading is (nearly) fixed in sutra recitation.
 SINGLE = {
     '刹': 'chà', '阿': 'ā', '般': 'bō', '祇': 'qí', '伽': 'qié', '佛': 'fó', '一': 'yī',
     '不': 'bù', '尽': 'jìn', '藏': 'zàng', '行': 'xíng', '当': 'dāng', '为': 'wèi', '那': 'nà', '横': 'hèng',
+    '白': 'bó', '华': 'huā',
 }
 # 为 reads wéi ("to be / to act as") in these contexts; elsewhere wèi ("for").
 WEI = ['充为劫', '身为大', '尚为菩', '所为善', '为虑', '名为', '铁为', '等为', '为善为恶',
@@ -64,6 +68,69 @@ XINJING = [
 ]
 XINJING_MANTRA = '揭谛揭谛，波罗揭谛，\n波罗僧揭谛，菩提萨婆诃。'
 
+# Bring the CBETA (大正藏) text in line with the 乾隆藏 wording used by the reference edition.
+TEXT_FIXES = [('彊', '强'), ('毘', '毗'), ('销', '消'), ('一沙一界', '一沙之界'), ('果位已来', '果位以来')]
+
+# Opening / closing liturgy, transcribed from the reference edition with its pinyin.
+# Each entry: (kind, text, pinyin, note). kind: h heading, n note, c invocation, v verse, p prose.
+CALL_SHAKYA = ('c', '南无本师释迦牟尼佛', 'ná mó běn shī shì jiā móu ní fó', '（合掌三称）')
+DIZANG_PRE = [
+    ('h', '香赞', 'xiāng zàn', None),
+    ('n', '（一遍）', None, None),
+    ('p', '炉香乍爇，法界蒙薰，诸佛海会悉遥闻，随处结祥云，诚意方殷，诸佛现全身。',
+     'lú xiāng zhà ruò fǎ jiè méng xūn zhū fó hǎi huì xī yáo wén suí chù jié xiáng yún '
+     'chéng yì fāng yīn zhū fó xiàn quán shēn', None),
+    ('c', '南无香云盖菩萨摩诃萨', 'ná mó xiāng yún gài pú sà mó hē sà', '（合掌三称）'),
+    CALL_SHAKYA,
+    ('h', '地藏菩萨偈', 'dì zàng pú sà jì', None),
+    ('n', '（一遍）', None, None),
+    ('v', '稽首本然净心地 无尽佛藏大慈尊\n南方世界涌香云 香雨花云及花雨\n宝雨宝云无数种 为祥为瑞遍庄严\n'
+          '天人问佛是何因 佛言地藏菩萨至\n三世如来同赞叹 十方菩萨共皈依\n我今宿植善因缘 称扬地藏真功德',
+     'qǐ shǒu běn rán jìng xīn dì wú jìn fó zàng dà cí zūn nán fāng shì jiè yǒng xiāng yún xiāng yǔ huā yún jí huā yǔ '
+     'bǎo yǔ bǎo yún wú shù zhǒng wéi xiáng wéi ruì biàn zhuāng yán tiān rén wèn fó shì hé yīn fó yán dì zàng pú sà zhì '
+     'sān shì rú lái tóng zàn tàn shí fāng pú sà gòng guī yī wǒ jīn sù zhí shàn yīn yuán chēng yáng dì zàng zhēn gōng dé', None),
+    ('p', '慈因积善，誓救众生，手中金锡，振开地狱之门。掌上明珠，光摄大千世界。智慧音里，吉祥云中，'
+          '为阎浮提苦众生，作大证明功德主。大悲大愿，大圣大慈，本尊地藏菩萨摩诃萨。',
+     'cí yīn jī shàn shì jiù zhòng shēng shǒu zhōng jīn xī zhèn kāi dì yù zhī mén zhǎng shàng míng zhū '
+     'guāng shè dà qiān shì jiè zhì huì yīn lǐ jí xiáng yún zhōng wèi yán fú tí kǔ zhòng shēng '
+     'zuò dà zhèng míng gōng dé zhǔ dà bēi dà yuàn dà shèng dà cí běn zūn dì zàng pú sà mó hē sà', None),
+    ('c', '南无大愿地藏王菩萨', 'ná mó dà yuàn dì zàng wáng pú sà', '（合掌三称）'),
+    CALL_SHAKYA,
+    ('h', '开经偈', 'kāi jīng jì', None),
+    ('n', '（一遍）', None, None),
+    ('v', '无上甚深微妙法 百千万劫难遭遇\n我今见闻得受持 愿解如来真实义',
+     'wú shàng shèn shēn wēi miào fǎ bǎi qiān wàn jié nán zāo yù wǒ jīn jiàn wén dé shòu chí yuàn jiě rú lái zhēn shí yì', None),
+]
+DIZANG_POST = [
+    ('h', '补阙真言', 'bǔ quē zhēn yán', None),
+    ('p', '南无喝啰怛那，哆罗夜耶，佉啰佉啰，俱住俱住，摩啰摩啰，虎啰，吽，贺贺，苏怛那，吽，泼抹拏，娑婆诃。',
+     'ná mó hē là dá nà duō là yè yē qié là qié là jù zhù jù zhù mó là mó là hǔ là hōng hè hè sū dá nà hōng '
+     'pō mò ná suō pó hē', '（三遍）'),
+    ('h', '补阙圆满真言', 'bǔ quē yuán mǎn zhēn yán', None),
+    ('p', '唵，呼嚧呼嚧，社曳穆契，娑诃。', 'ōng hū lú hū lú shè yì mù qiè suō hē', '（三遍）'),
+    ('h', '普回向真言', 'pǔ huí xiàng zhēn yán', None),
+    ('p', '唵，娑麽啰，娑麽啰，弭麽曩，萨嚩诃，摩诃斫迦啰嚩吽。',
+     'ōng suō mó là suō mó là mǐ mó nǎng sà pó hē mó hē zhuó jiā luó wá hōng', '（三遍）'),
+    ('h', '七佛灭罪真言', 'qī fó miè zuì zhēn yán', None),
+    ('p', '离婆离婆帝，求诃求诃帝，陀罗尼帝，尼诃啰帝，毗黎你帝，摩诃伽帝，真陵乾帝，莎婆诃。',
+     'lí pó lí pó dì qiú hē qiú hē dì tuó luó ní dì ní hē là dì pí lí nǐ dì mó hē qié dì zhēn líng qián dì suō pó hē',
+     '（三遍）'),
+    ('h', '灭定业真言', 'miè dìng yè zhēn yán', None),
+    ('p', '唵，钵啰末邻陀宁，娑婆诃。', 'ōng bō là mò lín tuó níng suō pó hē', '（三遍）'),
+    CALL_SHAKYA,
+    ('c', '南无地藏菩萨摩诃萨', 'ná mó dì zàng pú sà mó hē sà', '（合掌三称）'),
+    ('h', '回向偈', 'huí xiàng jì', None),
+    ('n', '（一遍）', None, None),
+    ('v', '诵经功德殊胜行 无边胜福皆回向\n普愿沉溺诸有情 速往无量光佛刹\n十方三世一切佛 一切菩萨摩诃萨\n摩诃般若波罗蜜',
+     'sòng jīng gōng dé shū shèng hèng wú biān shèng fú jiē huí xiàng pǔ yuàn chén nì zhū yǒu qíng sù wǎng wú liàng guāng fó chà '
+     'shí fāng sān shì yí qiè fó yí qiè pú sà mó hē sà mó hē bō rě bō luó mì', None),
+    ('h', '回向偈', 'huí xiàng jì', None),
+    ('n', '（一遍）', None, None),
+    ('v', '愿以此功德 庄严佛净土\n上报四重恩 下济三途苦\n若有见闻者 悉发菩提心\n尽此一报身 同生极乐国',
+     'yuàn yǐ cǐ gōng dé zhuāng yán fó jìng tǔ shàng bào sì chóng ēn xià jì sān tú kǔ '
+     'ruò yǒu jiàn wén zhě xī fā pú tí xīn jìn cǐ yī bào shēn tóng shēng jí lè guó', None),
+]
+
 HAN = re.compile(r'[㐀-鿿\U00020000-\U0003ffff]')
 
 
@@ -79,6 +146,8 @@ def apply_overrides(run, out):
     for word in sorted(PHRASES, key=len):
         for m in re.finditer(re.escape(word), run):
             out[m.start():m.end()] = PHRASES[word].split()
+    for m in re.finditer('不(?=[？?])', run):
+        out[m.start()] = 'fǒu'
     for ctx in WEI:
         for m in re.finditer(re.escape(ctx), run):
             for j in range(m.start(), m.end()):
@@ -105,6 +174,32 @@ def to_pinyin(text):
     apply_overrides(run, out)
     assert len(out) == len(chars)
     return ' '.join(out)
+
+
+def liturgy(title, entries):
+    paras = []
+    for kind, text, py, note in entries:
+        p = {'t': text, 'k': kind}
+        if py:
+            toks = iter(py.split())
+            p['p'] = ' '.join(next(toks) if HAN.match(c) else '_' for c in text if not c.isspace())
+            assert next(toks, None) is None, text
+            assert '_' not in [t for c, t in zip([c for c in text if not c.isspace()], p['p'].split()) if HAN.match(c)]
+        if note:
+            p['note'] = note
+        paras.append(p)
+    return {'title': title, 'x': 1, 'paras': paras}
+
+
+def apply_text_fixes(chapters):
+    for old, new in TEXT_FIXES:
+        hits = 0
+        for ch in chapters:
+            for p in ch['paras']:
+                hits += p['t'].count(old)
+                p['t'] = p['t'].replace(old, new)
+        assert hits, old
+    return chapters
 
 
 def parse_dizang(path):
@@ -156,14 +251,18 @@ def parse_dizang(path):
 def add_pinyin(chapters):
     for ch in chapters:
         for p in ch['paras']:
-            p['p'] = to_pinyin(p['t'])
+            if 'p' not in p and p.get('k') != 'n':
+                p['p'] = to_pinyin(p['t'])
     return chapters
 
 
 def main():
     src, out = sys.argv[1], sys.argv[2].rstrip('/')
     setup_pinyin()
-    dizang = add_pinyin(parse_dizang(src))
+    body = apply_text_fixes(parse_dizang(src))
+    body[0]['juan'] = '卷上'
+    body[6]['juan'] = '卷下'
+    dizang = add_pinyin([liturgy('开经', DIZANG_PRE)] + body + [liturgy('结经回向', DIZANG_POST)])
     xinjing = add_pinyin([{
         'title': '般若波罗蜜多心经',
         'paras': [{'t': t} for t in XINJING] + [{'t': XINJING_MANTRA, 'v': 1}],
