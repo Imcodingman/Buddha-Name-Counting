@@ -46,7 +46,10 @@ PHRASES = {
     '重白': 'chóng bó', '重海': 'chóng hǎi', '长钉': 'cháng dīng', '还复': 'huán fù',
     '大乘': 'dà shèng', '愿乐': 'yuàn yào', '攒': 'cuán', '之分': 'zhī fèn',
     '戟中': 'jǐ zhòng', '或中口': 'huò zhòng kǒu', '或中腹': 'huò zhòng fù',
-    '斗诤': 'dòu zhēng', '斗乱': 'dòu luàn', '喑哑': 'yīn yǎ', '悭吝': 'qiān lìn',
+    '斗诤': 'dòu zhēng', '校量': 'jiào liáng', '还以': 'huán yǐ', '辟除': 'bì chú',
+    '称遂': 'chèn suì', '衰相': 'shuāi xiàng', '现相': 'xiàn xiàng', '重石': 'zhòng dàn',
+    '须省': 'xū xǐng', '歌乐': 'gē yuè', '圣分': 'shèng fèn', '七分': 'qī fèn', '六分': 'liù fèn',
+    '分分': 'fèn fèn', '蚖蛇': 'wán shé', '那吒': 'nà zhà', '斗乱': 'dòu luàn', '喑哑': 'yīn yǎ', '悭吝': 'qiān lìn',
 }
 # Characters whose reading is (nearly) fixed in sutra recitation.
 SINGLE = {
@@ -79,6 +82,9 @@ TEXT_FIXES = [
     ('洋铜', '烊铜'), ('羗', '羌'), ('累劫已来', '累劫以来'), ('七日已来', '七日以来'), ('隣', '邻'), ('鼈', '鳖'),
     ('三涂', '三塗'), ('婬', '淫'), ('鬪', '斗'), ('瘖痖', '喑哑'), ('岐路', '歧路'), ('氷', '冰'),
     ('然油灯', '燃油灯'), ('悋', '吝'), ('旛', '幡'),
+    ('咤', '吒'), ('众生，欲生天人中', '众生，生天人中'), ('少香少华', '少香少花'), ('勅', '敕'),
+    ('集聚眷属', '聚集眷属'), ('惛昧', '昏昧'), ('不辩善恶', '不辨善恶'), ('又常称扬', '又当称扬'),
+    ('十岁已下', '十岁以下'), ('自今已后', '自今以后'),
 ]
 
 # Opening / closing liturgy, transcribed from the reference edition with its pinyin.
