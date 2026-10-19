@@ -245,3 +245,13 @@ h1, h2, p { margin: 0; }
 .lookup { display: flex; gap: 8px; }
 .lookup .input { flex: 1; }
 .lookup button { flex: none; padding: 0 18px; border-radius: 10px; }
+.qian-sec p.essence { color: var(--accent); font-weight: 600; }
+.topic-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.topic-chips button { min-height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--line); font-size: 13px; }
+.topic-chips button.on { background: var(--accent); border-color: var(--accent); color: var(--on); }
+.topic-body { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
+.topic-body p { font-family: var(--sans); font-size: 15px; line-height: 1.8; }
+.topic-body p.ask { font-size: 13px; color: var(--sub); margin-top: 6px; }
+.story { border-top: 1px solid var(--line); padding-top: 12px; }
+.story summary { font-size: 15px; font-weight: 500; cursor: pointer; list-style-position: inside; }
+.story p { font-size: 15px; line-height: 1.85; margin-top: 8px; text-indent: 2em; }

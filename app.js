@@ -57,7 +57,7 @@
     chs: migrateChs(saved),
     fs: saved.fs || 19,
     py: !!saved.py,
-    qhist: saved.qhist || [], qian: null, qText: null, qLoading: false, qErr: false, qShaking: false, qNo: '',
+    qhist: saved.qhist || [], qDetail: null, qDetailLoading: false, qShowDetail: false, qTopic: 0, qian: null, qText: null, qLoading: false, qErr: false, qShaking: false, qNo: '',
     texts: {}, loading: {}, errs: {}, toc: false,
     addingName: false, newName: '',
     editHw: false, hwName: '', hwTarget: '7', hwUnit: '遍',
@@ -413,6 +413,46 @@
     xhr.onerror = function () { S.qLoading = false; S.qErr = true; render(); };
     xhr.send();
   }
+  function loadQianDetail() {
+    if (S.qDetail || S.qDetailLoading) return;
+    S.qDetailLoading = true;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'data/lingqian-detail.json', true);
+    xhr.onload = function () {
+      S.qDetailLoading = false;
+      try { if (xhr.status >= 200 && xhr.status < 300) S.qDetail = JSON.parse(xhr.responseText); } catch (e) {}
+      if (!S.qDetail) { S.qShowDetail = false; toast('详细解签没有加载出来，请稍后再试'); }
+      render();
+    };
+    xhr.onerror = function () { S.qDetailLoading = false; S.qShowDetail = false; toast('详细解签没有加载出来，请稍后再试'); render(); };
+    xhr.send();
+  }
+  // A line like「若问姻缘何时来」is a question heading inside a topic.
+  function isAsk(l) { return /^若/.test(l) && !/[，。！？,]/.test(l); }
+  function qianDetailHtml(n) {
+    if (!S.qShowDetail) return '<button class="bar-btn" data-act="openQianDetail"><span>详细解签</span><span class="a">白话解读 · 分类问事 · 典故 ›</span></button>';
+    var d = S.qDetail && S.qDetail[n - 1];
+    if (!d) return '<p class="msg">详细解签加载中…</p>';
+    var h = '<div class="qian-card">';
+    h += '<div class="qian-sec"><span class="k">白话解签</span><p>' + d.summary.map(esc).join('<br>') + '</p></div>';
+    if (d.essence) h += '<div class="qian-sec"><span class="k">本签精髓</span><p class="essence">' + esc(d.essence) + '</p></div>';
+    var ti = Math.min(S.qTopic, d.topics.length - 1);
+    h += '<div class="qian-sec"><span class="k">分类问事</span><div class="topic-chips">';
+    d.topics.forEach(function (t, i) {
+      h += '<button class="' + (i === ti ? 'on' : '') + '" data-act="pickQianTopic" data-v="' + i + '">' + esc(t[0]) + '</button>';
+    });
+    h += '</div><div class="topic-body">';
+    d.topics[ti][1].forEach(function (l) {
+      h += isAsk(l) ? '<p class="ask">' + esc(l) + '</p>' : '<p>' + esc(l) + '</p>';
+    });
+    h += '</div></div>';
+    d.stories.forEach(function (st, i) {
+      h += '<details class="story"><summary>' + (i === 0 ? '签诗典故' : '相关故事') + (st[0] ? '：' + esc(st[0]) : '') + '</summary>' +
+        st[1].map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + '</details>';
+    });
+    h += '<p class="note">白话解签与典故整理自民间解签资料，仅供参考。</p></div>';
+    return h;
+  }
   function drawNumber() {
     try {
       var a = new Uint32Array(1);
@@ -467,6 +507,7 @@
         h += '</div></div>';
       }
       h += '</div>';
+      h += qianDetailHtml(q.n);
     }
 
     h += '<div class="card" style="gap:10px"><span style="font-size:15px;font-weight:500">按签号查签</span>' +
@@ -588,16 +629,18 @@
       setTimeout(function () {
         var n = drawNumber();
         S.qShaking = false;
-        set({ qian: n, qhist: [{ n: n, t: Date.now() }].concat(S.qhist).slice(0, 50) });
+        set({ qian: n, qTopic: 0, qhist: [{ n: n, t: Date.now() }].concat(S.qhist).slice(0, 50) });
         var card = view.querySelector('.qian-card');
         if (card) scrollEl.scrollTop = Math.max(0, card.offsetTop - 140);
       }, 1400);
     },
-    showQian: function (v) { set({ qian: +v }); toTop(); },
+    showQian: function (v) { set({ qian: +v, qTopic: 0 }); toTop(); },
+    openQianDetail: function () { S.qShowDetail = true; loadQianDetail(); render(); },
+    pickQianTopic: function (v) { set({ qTopic: +v }); },
     lookupQian: function () {
       var n = parseInt(S.qNo, 10);
       if (!(n >= 1 && n <= 100)) { toast('请输入 1 到 100 的签号'); return; }
-      set({ qian: n, qNo: '' });
+      set({ qian: n, qNo: '', qTopic: 0 });
       toTop();
     },
     retryQian: function () { S.qErr = false; render(); },
