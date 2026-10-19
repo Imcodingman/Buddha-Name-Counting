@@ -460,6 +460,7 @@
         '<div class="qian-poem">' + q.poem.map(esc).join('<br>') + '</div>';
       if (q.shiyi) h += '<div class="qian-sec"><span class="k">诗意</span><p>' + esc(q.shiyi) + '</p></div>';
       if (q.jie) h += '<div class="qian-sec"><span class="k">解曰</span><p>' + esc(q.jie) + '</p></div>';
+      if (q.note) h += '<div class="qian-sec"><span class="k">仙机</span><p>' + esc(q.note) + '</p></div>';
       if (q.xianji && q.xianji.length) {
         h += '<div class="qian-sec"><span class="k">仙机</span><div class="xianji">';
         q.xianji.forEach(function (x) { h += '<span><b>' + esc(x[0]) + '</b>' + esc(x[1]) + '</span>'; });
