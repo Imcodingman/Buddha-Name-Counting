@@ -503,9 +503,11 @@
     if (st === 'idle' || st === 'shaking') {
       h += '<p class="qian-tip">观音灵签共一百签。抽签前要专心一致、摒除杂念，先双手合十默念「救苦救难观世音菩萨」三遍，' +
         '再默念自己的姓名、出生年月日和居住地址，接着默念请求指点的问题，如婚姻、事业、流年、财运等。</p>';
-      h += '<div class="tube-wrap"><button class="tube' + (st === 'shaking' ? ' shake' : '') + '" data-act="startQian" aria-label="开始抽签">' +
-        tubeSvg(0) + '</button>' +
-        (st === 'shaking' ? '<span class="date">摇签中…</span>' : '<button class="qian-btn" data-act="startQian">开始抽签</button>') + '</div>';
+      h += st === 'shaking'
+        ? '<div class="tube-wrap"><div class="tube shake">' + tubeSvg(0) + '</div><span class="date">摇签中…</span></div>'
+        : '<div class="tube-wrap"><button class="guanyin" data-act="startQian" aria-label="开始抽签">' +
+          '<img src="guanyin.jpg' + VER + '" alt="观音菩萨像" width="250" height="284"></button>' +
+          '<button class="qian-btn" data-act="startQian">开始抽签</button></div>';
       h += '<p class="qian-tip">抽得签后需连续掷出三次圣杯，此签才算是灵签。同样的问题不可重复询问。</p>';
       return h;
     }
