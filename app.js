@@ -63,7 +63,7 @@
     chs: migrateChs(saved),
     fs: saved.fs || 19,
     py: !!saved.py,
-    qhist: saved.qhist || [], qDetail: null, qDetailLoading: false, qShowDetail: false, qTopic: 0, qian: null, qText: null, qLoading: false, qErr: false, qShaking: false, qNo: '',
+    qhist: saved.qhist || [], qDetail: null, qDetailLoading: false, qShowDetail: false, qTopic: 0, qian: null, qText: null, qLoading: false, qErr: false, qShaking: false, qNo: '', qStage: 'idle', qDraw: 0, qThrows: 0, qFromDraw: false,
     texts: {}, loading: {}, errs: {}, toc: false,
     addingName: false, newName: '',
     editHw: false, hwName: '', hwTarget: '7', hwUnit: '遍',
@@ -484,22 +484,63 @@
       '<rect x="36" y="64" width="78" height="10" rx="4" fill="var(--accent)"/>' +
       '<text x="75" y="136" font-size="20" text-anchor="middle" fill="var(--on)" font-family="serif" letter-spacing="2">灵签</text></svg>';
   }
+  // 筊杯 (moon blocks). face: 'yang' = flat side up, 'yin' = round side up.
+  function cupSvg(left, right, cls) {
+    function cup(face, x, flip) {
+      var t = 'translate(' + x + ' 0)' + (flip ? ' scale(-1 1)' : '');
+      return face === 'yang'
+        ? '<g transform="' + t + '"><path d="M0 8c-22 6-30 34-14 52 8 9 20 11 30 8-14-6-22-22-20-38 1-9 3-16 4-22z" fill="var(--cup-in)" stroke="var(--cup)" stroke-width="3"/></g>'
+        : '<g transform="' + t + '"><path d="M0 8c-22 6-30 34-14 52 8 9 20 11 30 8-14-6-22-22-20-38 1-9 3-16 4-22z" fill="var(--cup)"/>' +
+          '<path d="M-6 18c-10 6-12 22-5 32" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="3" stroke-linecap="round"/></g>';
+    }
+    return '<svg class="cups' + (cls ? ' ' + cls : '') + '" viewBox="-10 0 120 80" aria-hidden="true">' +
+      cup(left, 30, false) + cup(right, 70, true) + '</svg>';
+  }
+  var THROW_LABEL = ['开始掷杯', '掷第二次', '掷第三次'];
+  var THROW_DONE = ['', '你掷出了一次圣杯，请再掷一次！', '你掷出了两次圣杯，请再掷一次！'];
+  function qianRitualHtml() {
+    var st = S.qStage, h = '';
+    if (st === 'idle' || st === 'shaking') {
+      h += '<p class="qian-tip">观音灵签共一百签。抽签前要专心一致、摒除杂念，先双手合十默念「救苦救难观世音菩萨」三遍，' +
+        '再默念自己的姓名、出生年月日和居住地址，接着默念请求指点的问题，如婚姻、事业、流年、财运等。</p>';
+      h += '<div class="tube-wrap"><button class="tube' + (st === 'shaking' ? ' shake' : '') + '" data-act="startQian" aria-label="开始抽签">' +
+        tubeSvg(0) + '</button>' +
+        (st === 'shaking' ? '<span class="date">摇签中…</span>' : '<button class="qian-btn" data-act="startQian">开始抽签</button>') + '</div>';
+      h += '<p class="qian-tip">抽得签后需连续掷出三次圣杯，此签才算是灵签。同样的问题不可重复询问。</p>';
+      return h;
+    }
+    var n = S.qDraw;
+    h += '<div class="ritual"><div class="tube small">' + tubeSvg(n) + '</div>';
+    h += '<p class="ok-text">您抽到第 ' + n + ' 签！' + (st === 'done' ? '' : '<br>请心中虔诚默念请求指点的问题，再进行下一步！') + '</p>';
+    if (st === 'drawn') {
+      h += cupSvg(S.qThrows ? 'yang' : 'yin', 'yin');
+      h += '<p class="hint-text">需连续掷出三次圣杯后，此签才算是灵签！</p>';
+      if (S.qThrows) h += '<p class="ok-text">' + THROW_DONE[S.qThrows] + '</p>';
+      h += '<button class="qian-btn" data-act="tossQian">' + THROW_LABEL[S.qThrows] + '</button>';
+    } else if (st === 'tossing') {
+      h += cupSvg('yin', 'yin', 'tossing') + '<p class="hint-text">掷杯中…</p>';
+    } else if (st === 'fail') {
+      h += cupSvg('yang', 'yang') + '<p class="hint-text">需连续掷出三次圣杯后，此签才算是灵签！</p>' +
+        '<p class="bad-text">您掷出了笑杯，该签不灵，请重新抽签。</p>' +
+        '<button class="qian-btn" data-act="resetQian">重新抽签</button>';
+    } else if (st === 'done') {
+      h += cupSvg('yang', 'yin') + '<p class="ok-text">恭喜，你连续掷出了三次圣杯！</p>' +
+        '<button class="qian-btn" data-act="viewDrawnQian">查看签词</button>';
+    }
+    return h + '</div>';
+  }
   function viewQian() {
     loadQian();
     var h = '<div class="page tight">' + header('观音灵签');
-    var q = S.qian && S.qText ? S.qText[S.qian - 1] : null;
-
-    if (!q) {
-      h += '<p class="qian-tip">先静心合掌，默念「南无大慈大悲救苦救难观世音菩萨」三遍，再默念自己的姓名与所求之事，然后点签筒摇签。</p>';
-    }
-    h += '<div class="tube-wrap"><button class="tube' + (S.qShaking ? ' shake' : '') + '" data-act="shakeQian" aria-label="摇签">' +
-      tubeSvg(S.qShaking ? 0 : S.qian) + '</button>' +
-      '<span class="date">' + (S.qShaking ? '摇签中…' : q ? '再求一签请点签筒' : '点签筒摇签') + '</span></div>';
+    var q = S.qStage === 'result' && S.qian && S.qText ? S.qText[S.qian - 1] : null;
 
     if (S.qErr) h += '<p class="msg">签文暂时没有加载出来。<br><button class="link" style="align-self:center" data-act="retryQian">点此重试</button></p>';
     else if (!S.qText) h += '<p class="msg">签文加载中…</p>';
 
-    if (q && !S.qShaking) {
+    if (!q) h += qianRitualHtml();
+
+    if (q) {
+      if (S.qFromDraw) h += '<p class="qian-tip">您刚才抽得观音灵签第' + q.n + '签，以下是签词与解签：</p>';
       h += '<div class="qian-card"><div class="qian-no"><b>第' + cnNum(q.n) + '签</b>' +
         '<span class="qian-lv ' + levelCls(q.level) + '">' + esc(q.level) + '</span></div>' +
         (q.title ? '<div class="qian-title">' + esc(q.title) + (q.gong ? '<span class="date">　' + esc(q.gong) + '</span>' : '') + '</div>' : '') +
@@ -514,6 +555,7 @@
       }
       h += '</div>';
       h += qianDetailHtml(q.n);
+      h += '<button class="qian-btn" style="align-self:center" data-act="resetQian">重新抽签</button>';
     }
 
     h += '<div class="card" style="gap:10px"><span style="font-size:15px;font-weight:500">按签号查签</span>' +
@@ -626,27 +668,37 @@
     },
     readAgain: function () { set({ credited: false }); toTop(); },
 
-    shakeQian: function () {
-      if (S.qShaking) return;
+    startQian: function () {
+      if (S.qStage === 'shaking') return;
       if (!S.qText) { loadQian(); if (S.qErr) toast('签文没有加载出来，请稍后再试'); return; }
-      S.qShaking = true; S.qian = null;
-      render();
+      set({ qStage: 'shaking', qian: null });
       try { if (navigator.vibrate) navigator.vibrate([30, 60, 30, 60, 30]); } catch (e) {}
-      setTimeout(function () {
-        var n = drawNumber();
-        S.qShaking = false;
-        set({ qian: n, qTopic: 0, qhist: [{ n: n, t: Date.now() }].concat(S.qhist).slice(0, 50) });
-        var card = view.querySelector('.qian-card');
-        if (card) scrollEl.scrollTop = Math.max(0, card.offsetTop - 140);
-      }, 1400);
+      setTimeout(function () { set({ qStage: 'drawn', qDraw: drawNumber(), qThrows: 0 }); toTop(); }, 1400);
     },
-    showQian: function (v) { set({ qian: +v, qTopic: 0 }); toTop(); },
+    tossQian: function () {
+      if (S.qStage !== 'drawn') return;
+      set({ qStage: 'tossing' });
+      try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+      setTimeout(function () {
+        // 笑杯 about one throw in ten, as on the reference site.
+        if (drawNumber() <= 10) { set({ qStage: 'fail' }); return; }
+        var t = S.qThrows + 1;
+        set(t >= 3 ? { qStage: 'done', qThrows: 3 } : { qStage: 'drawn', qThrows: t });
+      }, 900);
+    },
+    viewDrawnQian: function () {
+      var n = S.qDraw;
+      set({ qStage: 'result', qian: n, qFromDraw: true, qTopic: 0, qhist: [{ n: n, t: Date.now() }].concat(S.qhist).slice(0, 50) });
+      toTop();
+    },
+    resetQian: function () { set({ qStage: 'idle', qian: null, qDraw: 0, qThrows: 0, qFromDraw: false }); toTop(); },
+    showQian: function (v) { set({ qStage: 'result', qian: +v, qFromDraw: false, qTopic: 0 }); toTop(); },
     openQianDetail: function () { S.qShowDetail = true; loadQianDetail(); render(); },
     pickQianTopic: function (v) { set({ qTopic: +v }); },
     lookupQian: function () {
       var n = parseInt(S.qNo, 10);
       if (!(n >= 1 && n <= 100)) { toast('请输入 1 到 100 的签号'); return; }
-      set({ qian: n, qNo: '', qTopic: 0 });
+      set({ qStage: 'result', qian: n, qFromDraw: false, qNo: '', qTopic: 0 });
       toTop();
     },
     retryQian: function () { S.qErr = false; render(); },

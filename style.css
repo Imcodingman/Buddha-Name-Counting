@@ -1,6 +1,7 @@
 :root {
   --bg: #F2EFE6; --card: #FBF9F3; --ink: #1F2421; --sub: #5C615A; --line: #DCD6C8;
   --accent: #2E5E4E; --soft: #E2E8E0; --gold: #8A6A22; --on: #FFFFFF;
+  --cup: #A3362B; --cup-in: #F3D9B1; --bad: #B23A2E;
   --sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --serif: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
 }
@@ -8,6 +9,7 @@
   :root {
     --bg: #121614; --card: #1B201D; --ink: #E9E5DA; --sub: #A3A89F; --line: #2F3632;
     --accent: #8DBBA7; --soft: #223029; --gold: #D2B266; --on: #0F1311;
+    --cup: #C2493C; --cup-in: #E8C998; --bad: #E07A6E;
   }
 }
 
@@ -255,3 +257,12 @@ h1, h2, p { margin: 0; }
 .story { border-top: 1px solid var(--line); padding-top: 12px; }
 .story summary { font-size: 15px; font-weight: 500; cursor: pointer; list-style-position: inside; }
 .story p { font-size: 15px; line-height: 1.85; margin-top: 8px; text-indent: 2em; }
+.qian-btn { min-height: 46px; padding: 0 28px; border-radius: 23px; background: var(--accent); color: var(--on); font-size: 16px; font-weight: 500; letter-spacing: 2px; }
+.ritual { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 4px 0 8px; text-align: center; }
+.tube.small { width: 96px; height: 122px; }
+.cups { width: 150px; height: 100px; }
+.cups.tossing { animation: toss .3s ease-in-out infinite alternate; }
+@keyframes toss { from { transform: translateY(0) rotate(-6deg); } to { transform: translateY(-22px) rotate(8deg); } }
+.ok-text { font-size: 16px; line-height: 1.8; color: var(--accent); }
+.hint-text { font-size: 14px; color: var(--sub); }
+.bad-text { font-size: 16px; color: var(--bad); }
