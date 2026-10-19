@@ -57,6 +57,7 @@
     chs: migrateChs(saved),
     fs: saved.fs || 19,
     py: !!saved.py,
+    qhist: saved.qhist || [], qian: null, qText: null, qLoading: false, qErr: false, qShaking: false, qNo: '',
     texts: {}, loading: {}, errs: {}, toc: false,
     addingName: false, newName: '',
     editHw: false, hwName: '', hwTarget: '7', hwUnit: '遍',
@@ -70,7 +71,7 @@
   function persist() {
     try {
       window.localStorage.setItem(STORE_KEY, JSON.stringify({
-        names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, cv: 2, fs: S.fs, py: S.py
+        names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, cv: 2, fs: S.fs, py: S.py, qhist: S.qhist
       }));
     } catch (e) {}
   }
@@ -388,8 +389,103 @@
     return h;
   }
 
+  /* ============ 观音灵签 ============ */
+  var QIAN_URL = 'data/lingqian.json';
+  var CN_NUM = '零一二三四五六七八九';
+  function cnNum(n) {
+    if (n === 100) return '一百';
+    var t = Math.floor(n / 10), u = n % 10;
+    return (t > 1 ? CN_NUM[t] : '') + (t ? '十' : '') + (u ? CN_NUM[u] : '');
+  }
+  function loadQian() {
+    if (S.qText || S.qLoading) return;
+    S.qLoading = true; S.qErr = false;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', QIAN_URL, true);
+    xhr.onload = function () {
+      S.qLoading = false;
+      try {
+        if (xhr.status >= 200 && xhr.status < 300) S.qText = JSON.parse(xhr.responseText);
+        else S.qErr = true;
+      } catch (e) { S.qErr = true; }
+      render();
+    };
+    xhr.onerror = function () { S.qLoading = false; S.qErr = true; render(); };
+    xhr.send();
+  }
+  function drawNumber() {
+    try {
+      var a = new Uint32Array(1);
+      window.crypto.getRandomValues(a);
+      return (a[0] % 100) + 1;
+    } catch (e) { return Math.floor(Math.random() * 100) + 1; }
+  }
+  function levelCls(lv) {
+    if (/上/.test(lv)) return 'good';
+    if (/下/.test(lv)) return 'bad';
+    return 'mid';
+  }
+  function tubeSvg(n) {
+    var sticks = '';
+    for (var i = 0; i < 9; i++) {
+      var x = 52 + i * 6;
+      sticks += '<rect x="' + x + '" y="' + (18 + (i * 7) % 16) + '" width="4" height="80" rx="1.5" fill="var(--gold)" opacity=".75"/>';
+    }
+    var out = n ? '<g class="stick-out"><rect x="70" y="0" width="10" height="92" rx="3" fill="var(--gold)"/>' +
+      '<text x="75" y="22" font-size="9" text-anchor="middle" fill="var(--on)" font-family="serif">' + n + '</text></g>' : '';
+    return '<svg viewBox="0 0 150 190" aria-hidden="true">' + sticks + out +
+      '<path d="M40 70h70l-6 108a8 8 0 0 1-8 8H54a8 8 0 0 1-8-8z" fill="var(--accent)"/>' +
+      '<rect x="36" y="64" width="78" height="10" rx="4" fill="var(--accent)"/>' +
+      '<text x="75" y="136" font-size="20" text-anchor="middle" fill="var(--on)" font-family="serif" letter-spacing="2">灵签</text></svg>';
+  }
+  function viewQian() {
+    loadQian();
+    var h = '<div class="page tight">' + header('观音灵签');
+    var q = S.qian && S.qText ? S.qText[S.qian - 1] : null;
+
+    if (!q) {
+      h += '<p class="qian-tip">先静心合掌，默念「南无大慈大悲救苦救难观世音菩萨」三遍，再默念自己的姓名与所求之事，然后点签筒摇签。</p>';
+    }
+    h += '<div class="tube-wrap"><button class="tube' + (S.qShaking ? ' shake' : '') + '" data-act="shakeQian" aria-label="摇签">' +
+      tubeSvg(S.qShaking ? 0 : S.qian) + '</button>' +
+      '<span class="date">' + (S.qShaking ? '摇签中…' : q ? '再求一签请点签筒' : '点签筒摇签') + '</span></div>';
+
+    if (S.qErr) h += '<p class="msg">签文暂时没有加载出来。<br><button class="link" style="align-self:center" data-act="retryQian">点此重试</button></p>';
+    else if (!S.qText) h += '<p class="msg">签文加载中…</p>';
+
+    if (q && !S.qShaking) {
+      h += '<div class="qian-card"><div class="qian-no"><b>第' + cnNum(q.n) + '签</b>' +
+        '<span class="qian-lv ' + levelCls(q.level) + '">' + esc(q.level) + '</span></div>' +
+        (q.title ? '<div class="qian-title">' + esc(q.title) + (q.gong ? '<span class="date">　' + esc(q.gong) + '</span>' : '') + '</div>' : '') +
+        '<div class="qian-poem">' + q.poem.map(esc).join('<br>') + '</div>';
+      if (q.shiyi) h += '<div class="qian-sec"><span class="k">诗意</span><p>' + esc(q.shiyi) + '</p></div>';
+      if (q.jie) h += '<div class="qian-sec"><span class="k">解曰</span><p>' + esc(q.jie) + '</p></div>';
+      if (q.xianji && q.xianji.length) {
+        h += '<div class="qian-sec"><span class="k">仙机</span><div class="xianji">';
+        q.xianji.forEach(function (x) { h += '<span><b>' + esc(x[0]) + '</b>' + esc(x[1]) + '</span>'; });
+        h += '</div></div>';
+      }
+      h += '</div>';
+    }
+
+    h += '<div class="card" style="gap:10px"><span style="font-size:15px;font-weight:500">按签号查签</span>' +
+      '<div class="lookup"><input class="input" type="number" inputmode="numeric" min="1" max="100" placeholder="1 – 100" data-in="qNo" value="' + esc(S.qNo) + '">' +
+      '<button class="btn-accent" data-act="lookupQian">查看</button></div></div>';
+
+    if (S.qhist.length) {
+      h += '<div class="card" style="gap:10px"><span style="font-size:15px;font-weight:500">求签记录</span><div class="qian-hist">';
+      S.qhist.slice(0, 20).forEach(function (r) {
+        var d = new Date(r.t);
+        h += '<button data-act="showQian" data-v="' + r.n + '">' + (d.getMonth() + 1) + '/' + d.getDate() + ' · 第' + cnNum(r.n) + '签</button>';
+      });
+      h += '</div></div>';
+    }
+    h += '<p class="note" style="text-align:center">签文仅供参考，祈愿之事还需随缘、尽人事。</p></div>';
+    return h;
+  }
+
   function render() {
-    var fn = { count: viewCount, hw: viewHw, read: viewRead, stats: viewStats }[S.tab];
+    var fn = { count: viewCount, hw: viewHw, read: viewRead, qian: viewQian, stats: viewStats }[S.tab];
     view.innerHTML = fn();
     var btns = tabsEl.querySelectorAll('button');
     for (var i = 0; i < btns.length; i++) {
@@ -482,11 +578,33 @@
     },
     readAgain: function () { set({ credited: false }); toTop(); },
 
+    shakeQian: function () {
+      if (S.qShaking) return;
+      if (!S.qText) { loadQian(); if (S.qErr) toast('签文没有加载出来，请稍后再试'); return; }
+      S.qShaking = true; S.qian = null;
+      render();
+      try { if (navigator.vibrate) navigator.vibrate([30, 60, 30, 60, 30]); } catch (e) {}
+      setTimeout(function () {
+        var n = drawNumber();
+        S.qShaking = false;
+        set({ qian: n, qhist: [{ n: n, t: Date.now() }].concat(S.qhist).slice(0, 50) });
+        var card = view.querySelector('.qian-card');
+        if (card) scrollEl.scrollTop = Math.max(0, card.offsetTop - 140);
+      }, 1400);
+    },
+    showQian: function (v) { set({ qian: +v }); toTop(); },
+    lookupQian: function () {
+      var n = parseInt(S.qNo, 10);
+      if (!(n >= 1 && n <= 100)) { toast('请输入 1 到 100 的签号'); return; }
+      set({ qian: n, qNo: '' });
+      toTop();
+    },
+    retryQian: function () { S.qErr = false; render(); },
     monthPrev: function () { set({ monthOff: S.monthOff - 1 }); },
     monthNext: function () { if (S.monthOff < 0) set({ monthOff: S.monthOff + 1 }); },
     pickDay: function (v) { set({ selDay: v }); },
     exportData: function () {
-      copyText(JSON.stringify({ app: 'nianfo', v: 1, names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, cv: 2, fs: S.fs, py: S.py }));
+      copyText(JSON.stringify({ app: 'nianfo', v: 1, names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, cv: 2, fs: S.fs, py: S.py, qhist: S.qhist }));
     },
     importData: function () {
       var txt = window.prompt('请粘贴之前复制的备份内容：', '');
@@ -499,7 +617,7 @@
       }
       if (!window.confirm('恢复备份会覆盖本机当前的全部记录，确定吗？')) return;
       set({ names: d.names, cur: d.cur || 0, goal: d.goal || 1080, items: d.items, rec: d.rec, sid: d.sid || 'dzj',
-        chs: migrateChs(d), fs: d.fs || 19, py: !!d.py, selDay: null });
+        chs: migrateChs(d), fs: d.fs || 19, py: !!d.py, qhist: Array.isArray(d.qhist) ? d.qhist : S.qhist, selDay: null });
       toast('已恢复备份');
     }
   };
@@ -520,6 +638,7 @@
     if (e.key !== 'Enter') return;
     var key = e.target.getAttribute && e.target.getAttribute('data-in');
     if (key === 'newName') actions.confirmName();
+    else if (key === 'qNo') actions.lookupQian();
     else if (key) actions.addHw();
   });
 
