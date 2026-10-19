@@ -1,10 +1,16 @@
 (function () {
   'use strict';
 
+  // Version from app.js?v=..., appended to data URLs so updates bypass WeChat's cache.
+  var VER = (function () {
+    var m = /[?&]v=([^&]+)/.exec((document.currentScript || {}).src || '');
+    return m ? '?v=' + m[1] : '';
+  })();
+
   var SUTRAS = [
-    { id: 'dzj', name: '地藏经', title: '地藏菩萨本愿经', by: '唐 于阗国三藏沙门 实叉难陀 译', url: 'data/dizang.json',
+    { id: 'dzj', name: '地藏经', title: '地藏菩萨本愿经', by: '唐 于阗国三藏沙门 实叉难陀 译', url: 'data/dizang.json' + VER,
       src: '经文据 CBETA 电子佛典《大正藏》第 13 册 No. 412 简体转写，并参照乾隆藏读诵本校订；开经、结经仪轨及拼音参照达缘讲堂读诵版' },
-    { id: 'xj', name: '心经', title: '般若波罗蜜多心经', by: '唐 三藏法师 玄奘 译', url: 'data/xinjing.json',
+    { id: 'xj', name: '心经', title: '般若波罗蜜多心经', by: '唐 三藏法师 玄奘 译', url: 'data/xinjing.json' + VER,
       src: '通行读诵本，参《大正藏》第 8 册 No. 251' }
   ];
   var STORE_KEY = 'nianfo-record-v1';
@@ -390,7 +396,7 @@
   }
 
   /* ============ 观音灵签 ============ */
-  var QIAN_URL = 'data/lingqian.json';
+  var QIAN_URL = 'data/lingqian.json' + VER;
   var CN_NUM = '零一二三四五六七八九';
   function cnNum(n) {
     if (n === 100) return '一百';
@@ -417,7 +423,7 @@
     if (S.qDetail || S.qDetailLoading) return;
     S.qDetailLoading = true;
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'data/lingqian-detail.json', true);
+    xhr.open('GET', 'data/lingqian-detail.json' + VER, true);
     xhr.onload = function () {
       S.qDetailLoading = false;
       try { if (xhr.status >= 200 && xhr.status < 300) S.qDetail = JSON.parse(xhr.responseText); } catch (e) {}
