@@ -63,7 +63,7 @@
     chs: migrateChs(saved),
     fs: saved.fs || 19,
     py: !!saved.py,
-    qhist: saved.qhist || [], qDetail: null, qDetailLoading: false, qShowDetail: false, qTopic: 0, qian: null, qText: null, qLoading: false, qErr: false, qShaking: false, qNo: '', qStage: 'idle', qDraw: 0, qThrows: 0, qFromDraw: false,
+    qhist: saved.qhist || [], qDetail: null, qDetailLoading: false, qShowDetail: false, qTopic: 0, qian: null, qText: null, qLoading: false, qErr: false, qShaking: false, qNo: '', stRange: 7, stName: '', stSel: null, qStage: 'idle', qDraw: 0, qThrows: 0, qFromDraw: false,
     texts: {}, loading: {}, errs: {}, toc: false,
     addingName: false, newName: '',
     editHw: false, hwName: '', hwTarget: '7', hwUnit: '遍',
@@ -319,61 +319,116 @@
 
   /* ============ 统计 ============ */
   function viewStats() {
-    var now = new Date(), tk = dkey(now);
+    var now = new Date(), tk = dkey(now), monthKey = tk.slice(0, 8);
     function getDay(k) { return S.rec[k] || null; }
 
-    var allTotal = 0, byName = {};
+    // Totals per 佛号, per month, and chanting / homework day counts.
+    var allTotal = 0, monthTotal = 0, chantDays = 0, monthFull = 0, byName = {};
     for (var k in S.rec) {
-      var dc = S.rec[k].c || {};
+      var dc = S.rec[k].c || {}, daySum = 0;
       for (var nm0 in dc) {
         if (!dc[nm0]) continue;
         byName[nm0] = byName[nm0] || { total: 0, today: 0, days: 0 };
         byName[nm0].total += dc[nm0];
         byName[nm0].days++;
         if (k === tk) byName[nm0].today = dc[nm0];
-        allTotal += dc[nm0];
+        daySum += dc[nm0];
       }
+      allTotal += daySum;
+      if (daySum) chantDays++;
+      if (k.slice(0, 8) === monthKey) { monthTotal += daySum; if (isFull(S.rec[k])) monthFull++; }
     }
     var streak = 0;
     for (var si = isFull(getDay(tk)) ? 0 : 1; si < 3650; si++) {
       if (isFull(getDay(dkey(addDays(now, -si))))) streak++; else break;
     }
+    var names = Object.keys(byName).sort(function (a, b) { return byName[b].total - byName[a].total; });
+    var stName = S.stName && byName[S.stName] ? S.stName : '';
 
-    var vals = [], maxV = 1;
-    for (var bi = 6; bi >= 0; bi--) {
-      var bd = addDays(now, -bi), bdy = getDay(dkey(bd)), v = sumObj(bdy && bdy.c);
-      vals.push({ d: bd, v: v, today: bi === 0 });
-      if (v > maxV) maxV = v;
+    function tile(k, v, unit) {
+      return '<div class="tile"><span class="k">' + k + '</span><span class="v num">' + v + (unit ? ' <small>' + unit + '</small>' : '') + '</span></div>';
     }
+    function fmt(v) { return v >= 10000 ? (v / 10000).toFixed(1) + '万' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(v); }
 
     var h = '<div class="page tight">' + header('统计');
-    h += '<div class="grid3">' +
-      '<div class="tile"><span class="k">今日佛号</span><span class="v num">' + sumObj((S.rec[tk] || {}).c) + '</span></div>' +
-      '<div class="tile"><span class="k">累计佛号</span><span class="v num">' + allTotal + '</span></div>' +
-      '<div class="tile"><span class="k">功课连续圆满</span><span class="v">' + streak + ' <small>天</small></span></div></div>';
 
-    var names = Object.keys(byName).sort(function (a, b) { return byName[b].total - byName[a].total; });
-    h += '<div class="card" style="gap:12px"><span style="font-size:15px;font-weight:500">分佛号累计</span>';
+    /* 总览 */
+    h += '<div class="grid3">' + tile('今日佛号', sumObj((S.rec[tk] || {}).c)) + tile('本月佛号', monthTotal) + tile('累计佛号', allTotal) + '</div>';
+    h += '<div class="grid3">' + tile('念佛天数', chantDays, '天') + tile('连续圆满', streak, '天') + tile('本月圆满', monthFull, '天') + '</div>';
+
+    /* 佛号趋势 */
+    var range = S.stRange === 30 ? 30 : 7;
+    var vals = [], maxV = 0, sumV = 0, maxI = -1;
+    for (var bi = range - 1; bi >= 0; bi--) {
+      var bd = addDays(now, -bi), bc = (getDay(dkey(bd)) || {}).c || {};
+      var v = stName ? (bc[stName] || 0) : sumObj(bc);
+      if (v > maxV) { maxV = v; maxI = vals.length; }
+      sumV += v;
+      vals.push({ d: bd, v: v, today: bi === 0 });
+    }
+    var sel = S.stSel != null && S.stSel < vals.length ? S.stSel : null;
+    h += '<div class="card" style="gap:12px"><div class="card-top"><span class="ttl">佛号趋势</span>' +
+      '<div class="seg"><button class="' + (range === 7 ? 'on' : '') + '" data-act="stRange" data-v="7">近7日</button>' +
+      '<button class="' + (range === 30 ? 'on' : '') + '" data-act="stRange" data-v="30">近30日</button></div></div>';
+    if (names.length > 1) {
+      h += '<div class="topic-chips"><button class="' + (!stName ? 'on' : '') + '" data-act="stName" data-v="">全部</button>';
+      names.forEach(function (nm) {
+        h += '<button class="' + (nm === stName ? 'on' : '') + '" data-act="stName" data-v="' + esc(nm) + '">' + esc(nm.replace(/^南无/, '')) + '</button>';
+      });
+      h += '</div>';
+    }
+    var info = sel != null
+      ? dayLabel(vals[sel].d) + ' · ' + (stName ? esc(stName) + ' ' : '') + vals[sel].v + ' 声'
+      : '合计 ' + sumV + ' 声 · 日均 ' + Math.round(sumV / range) + ' 声' + (maxV ? ' · 最多 ' + (vals[maxI].d.getMonth() + 1) + '/' + vals[maxI].d.getDate() + ' ' + maxV + ' 声' : '');
+    h += '<p class="chart-info">' + info + '</p>';
+    h += '<div class="chart' + (range === 30 ? ' dense' : '') + '">';
+    vals.forEach(function (x, i) {
+      var bh = x.v && maxV ? Math.max(4, Math.round(x.v / maxV * 100)) : 0;
+      var showLb = range === 7 ? x.v > 0 : (x.v > 0 && (i === maxI || x.today || i === sel));
+      var dl = x.today ? '今' : range === 7 ? WK[x.d.getDay()] : (x.d.getDate() === 1 || i % 5 === 4 ? String(x.d.getDate()) : '');
+      h += '<button class="c' + (x.today ? ' today' : '') + (i === sel ? ' sel' : '') + '" data-act="stBar" data-v="' + i + '" aria-label="' + dayLabel(x.d) + ' ' + x.v + ' 声">' +
+        '<span class="lb num">' + (showLb ? fmt(x.v) : '') + '</span><div class="b" style="height:' + bh + 'px"></div><span class="d">' + dl + '</span></button>';
+    });
+    h += '</div>';
+    if (!maxV) h += '<p class="sub" style="font-size:13px;text-align:center">这段时间还没有' + (stName ? '念这个佛号的' : '念佛') + '记录</p>';
+    h += '</div>';
+
+    /* 分佛号累计 */
+    h += '<div class="card" style="gap:12px"><span class="ttl">分佛号累计</span>';
     if (!names.length) h += '<p style="font-size:14px" class="sub">还没有念佛记录。在「念佛」页点圆盘计数后，这里会按佛号分别累计。</p>';
     else {
       var top = byName[names[0]].total;
       names.forEach(function (nm) {
         var r = byName[nm];
-        h += '<div class="name-row"><div class="kv"><span>' + esc(nm) + '</span><span class="r"><b class="serif">' + r.total + '</b> 声</span></div>' +
+        h += '<button class="name-row' + (nm === stName ? ' on' : '') + '" data-act="stName" data-v="' + esc(nm) + '">' +
+          '<div class="kv"><span>' + esc(nm) + '</span><span class="r"><b class="serif">' + r.total + '</b> 声</span></div>' +
           '<div class="prog"><i style="width:' + Math.max(2, Math.round(r.total * 100 / top)) + '%"></i></div>' +
-          '<div class="name-meta">约 ' + Math.floor(r.total / 108) + ' 串 · 共 ' + r.days + ' 天' + (r.today ? ' · 今日 ' + r.today + ' 声' : '') + '</div></div>';
+          '<div class="name-meta">约 ' + Math.floor(r.total / 108) + ' 串 · 共 ' + r.days + ' 天' + (r.today ? ' · 今日 ' + r.today + ' 声' : '') + '</div></button>';
       });
+      if (names.length > 1) h += '<p class="note">点一个佛号，可在上方查看它的趋势。</p>';
     }
     h += '</div>';
 
-    h += '<div class="card"><span style="font-size:15px;font-weight:500">近七日佛号</span><div class="chart">';
-    vals.forEach(function (x) {
-      var lb = x.v >= 1000 ? (x.v / 1000).toFixed(1) + 'k' : String(x.v);
-      var bh = x.v ? Math.max(4, Math.round(x.v / maxV * 100)) : 0;
-      h += '<div class="c' + (x.today ? ' today' : '') + '"><span class="lb num">' + lb + '</span><div class="b" style="height:' + bh + 'px"></div><span class="d">' + (x.today ? '今' : WK[x.d.getDay()]) + '</span></div>';
-    });
-    h += '</div></div>';
+    /* 功课统计 */
+    if (S.items.length) {
+      h += '<div class="card" style="gap:12px"><span class="ttl">功课统计</span>';
+      var dayOfMonth = now.getDate();
+      S.items.forEach(function (it) {
+        var tot = 0, done = 0, unit = it.unit || '遍';
+        for (var k2 in S.rec) {
+          var n2 = ((S.rec[k2].h || {})[it.id]) || 0;
+          tot += n2;
+          if (k2.slice(0, 8) === monthKey && n2 >= it.target) done++;
+        }
+        h += '<div class="name-row"><div class="kv"><span>' + esc(it.name) + '</span><span class="r"><b class="serif">' + tot + '</b> ' + esc(unit) + '</span></div>' +
+          '<div class="prog"><i style="width:' + Math.round(done * 100 / dayOfMonth) + '%"></i></div>' +
+          '<div class="name-meta">本月完成 ' + done + ' / ' + dayOfMonth + ' 天 · 每日 ' + it.target + ' ' + esc(unit) + '</div></div>';
+      });
+      h += '</div>';
+    }
 
+    /* 修行日历 */
+    h += '<span class="sec-ttl">修行日历</span>';
     var base = new Date(now.getFullYear(), now.getMonth() + S.monthOff, 1);
     var lead = (base.getDay() + 6) % 7;
     var dim = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
@@ -731,6 +786,9 @@
     monthPrev: function () { set({ monthOff: S.monthOff - 1 }); },
     monthNext: function () { if (S.monthOff < 0) set({ monthOff: S.monthOff + 1 }); },
     pickDay: function (v) { set({ selDay: v }); },
+    stRange: function (v) { set({ stRange: +v, stSel: null }); },
+    stName: function (v) { set({ stName: v || '', stSel: null }); if (v) scrollEl.scrollTop = 0; },
+    stBar: function (v) { set({ stSel: S.stSel === +v ? null : +v }); },
     exportData: function () {
       copyText(JSON.stringify({ app: 'nianfo', v: 1, names: S.names, cur: S.cur, goal: S.goal, items: S.items, rec: S.rec, sid: S.sid, chs: S.chs, cv: 2, fs: S.fs, py: S.py, qhist: S.qhist }));
     },

@@ -272,3 +272,18 @@ h1, h2, p { margin: 0; }
 .name-row .kv { min-height: 0; }
 .name-row .r b { font-size: 18px; font-weight: 600; }
 .name-meta { font-size: 12px; color: var(--sub); }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ttl { font-size: 15px; font-weight: 500; }
+.sec-ttl { font-size: 15px; font-weight: 500; margin: 6px 2px -4px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 17px; overflow: hidden; }
+.seg button { min-height: 32px; padding: 0 12px; font-size: 13px; color: var(--sub); }
+.seg button.on { background: var(--accent); color: var(--on); }
+.chart-info { font-size: 13px; color: var(--sub); min-height: 1.4em; }
+.chart button.c { padding: 0; }
+.chart .sel .b { opacity: 1; box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--accent); }
+.chart.dense { grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 2px; }
+.chart.dense .b { border-radius: 3px 3px 1px 1px; }
+.chart.dense .lb { font-size: 10px; white-space: nowrap; }
+.chart.dense .d { font-size: 10px; }
+button.name-row { text-align: left; padding: 6px 8px; margin: 0 -8px; width: calc(100% + 16px); border-radius: 10px; }
+button.name-row.on { background: var(--soft); }
