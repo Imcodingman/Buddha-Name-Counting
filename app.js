@@ -322,8 +322,18 @@
     var now = new Date(), tk = dkey(now);
     function getDay(k) { return S.rec[k] || null; }
 
-    var allTotal = 0;
-    for (var k in S.rec) allTotal += sumObj(S.rec[k].c);
+    var allTotal = 0, byName = {};
+    for (var k in S.rec) {
+      var dc = S.rec[k].c || {};
+      for (var nm0 in dc) {
+        if (!dc[nm0]) continue;
+        byName[nm0] = byName[nm0] || { total: 0, today: 0, days: 0 };
+        byName[nm0].total += dc[nm0];
+        byName[nm0].days++;
+        if (k === tk) byName[nm0].today = dc[nm0];
+        allTotal += dc[nm0];
+      }
+    }
     var streak = 0;
     for (var si = isFull(getDay(tk)) ? 0 : 1; si < 3650; si++) {
       if (isFull(getDay(dkey(addDays(now, -si))))) streak++; else break;
@@ -341,6 +351,19 @@
       '<div class="tile"><span class="k">今日佛号</span><span class="v num">' + sumObj((S.rec[tk] || {}).c) + '</span></div>' +
       '<div class="tile"><span class="k">累计佛号</span><span class="v num">' + allTotal + '</span></div>' +
       '<div class="tile"><span class="k">功课连续圆满</span><span class="v">' + streak + ' <small>天</small></span></div></div>';
+
+    var names = Object.keys(byName).sort(function (a, b) { return byName[b].total - byName[a].total; });
+    if (names.length) {
+      var top = byName[names[0]].total;
+      h += '<div class="card" style="gap:12px"><span style="font-size:15px;font-weight:500">分佛号累计</span>';
+      names.forEach(function (nm) {
+        var r = byName[nm];
+        h += '<div class="name-row"><div class="kv"><span>' + esc(nm) + '</span><span class="r"><b class="serif">' + r.total + '</b> 声</span></div>' +
+          '<div class="prog"><i style="width:' + Math.max(2, Math.round(r.total * 100 / top)) + '%"></i></div>' +
+          '<div class="name-meta">约 ' + Math.floor(r.total / 108) + ' 串 · 共 ' + r.days + ' 天' + (r.today ? ' · 今日 ' + r.today + ' 声' : '') + '</div></div>';
+      });
+      h += '</div>';
+    }
 
     h += '<div class="card"><span style="font-size:15px;font-weight:500">近七日佛号</span><div class="chart">';
     vals.forEach(function (x) {

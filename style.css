@@ -268,3 +268,7 @@ h1, h2, p { margin: 0; }
 .bad-text { font-size: 16px; color: var(--bad); }
 .guanyin { width: min(250px, 70vw); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0, 0, 0, .12); }
 .guanyin img { display: block; width: 100%; height: auto; }
+.name-row { display: flex; flex-direction: column; gap: 6px; }
+.name-row .kv { min-height: 0; }
+.name-row .r b { font-size: 18px; font-weight: 600; }
+.name-meta { font-size: 12px; color: var(--sub); }
