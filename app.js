@@ -353,17 +353,18 @@
       '<div class="tile"><span class="k">功课连续圆满</span><span class="v">' + streak + ' <small>天</small></span></div></div>';
 
     var names = Object.keys(byName).sort(function (a, b) { return byName[b].total - byName[a].total; });
-    if (names.length) {
+    h += '<div class="card" style="gap:12px"><span style="font-size:15px;font-weight:500">分佛号累计</span>';
+    if (!names.length) h += '<p style="font-size:14px" class="sub">还没有念佛记录。在「念佛」页点圆盘计数后，这里会按佛号分别累计。</p>';
+    else {
       var top = byName[names[0]].total;
-      h += '<div class="card" style="gap:12px"><span style="font-size:15px;font-weight:500">分佛号累计</span>';
       names.forEach(function (nm) {
         var r = byName[nm];
         h += '<div class="name-row"><div class="kv"><span>' + esc(nm) + '</span><span class="r"><b class="serif">' + r.total + '</b> 声</span></div>' +
           '<div class="prog"><i style="width:' + Math.max(2, Math.round(r.total * 100 / top)) + '%"></i></div>' +
           '<div class="name-meta">约 ' + Math.floor(r.total / 108) + ' 串 · 共 ' + r.days + ' 天' + (r.today ? ' · 今日 ' + r.today + ' 声' : '') + '</div></div>';
       });
-      h += '</div>';
     }
+    h += '</div>';
 
     h += '<div class="card"><span style="font-size:15px;font-weight:500">近七日佛号</span><div class="chart">';
     vals.forEach(function (x) {
@@ -775,4 +776,19 @@
   });
 
   render();
+
+  // WeChat may keep serving a cached index.html. version.txt is fetched with a unique URL;
+  // if it names a newer version than the one running, reload the page once with that version.
+  (function checkVersion() {
+    if (!VER) return;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'version.txt?t=' + Date.now(), true);
+    xhr.onload = function () {
+      var latest = (xhr.responseText || '').trim();
+      if (xhr.status !== 200 || !/^\d+$/.test(latest) || '?v=' + latest === VER) return;
+      try { if (sessionStorage.getItem('reloadedFor') === latest) return; sessionStorage.setItem('reloadedFor', latest); } catch (e) {}
+      location.replace(location.pathname + '?v=' + latest + location.hash);
+    };
+    xhr.send();
+  })();
 })();
