@@ -102,7 +102,8 @@
     var k = dkey(new Date());
     var rec = Object.assign({}, S.rec);
     var old = rec[k] || { c: {}, h: {} };
-    var day = { c: Object.assign({}, old.c), h: Object.assign({}, old.h) };
+    // c: 佛号 counts, h: 功课 counts, r: completed sutra readings (读诵圆满) by sutra id.
+    var day = { c: Object.assign({}, old.c), h: Object.assign({}, old.h), r: Object.assign({}, old.r) };
     day[kind][id] = Math.max(0, (day[kind][id] || 0) + delta);
     rec[k] = day;
     var next = { rec: rec };
@@ -149,7 +150,8 @@
     if (!day || !S.items.length) return false;
     return S.items.every(function (it) { return ((day.h || {})[it.id] || 0) >= it.target; });
   }
-  function hasAny(day) { return !!day && (sumObj(day.c) > 0 || sumObj(day.h) > 0); }
+  function hasAny(day) { return !!day && (sumObj(day.c) > 0 || sumObj(day.h) > 0 || sumObj(day.r) > 0); }
+  function sutraUnit(sid) { return sid === 'dzj' ? '部' : '遍'; }
 
   function header(title, right) {
     return '<div class="head"><div class="col"><span class="date">' + dayLabel(new Date()) +
@@ -299,14 +301,16 @@
     }
 
     h += '<div class="reader-foot">';
-    if (isLast && item) {
+    if (isLast) {
       if (S.credited) {
-        var tk = dkey(new Date());
-        var n = (S.rec[tk] && S.rec[tk].h[item.id]) || 0;
-        h += '<p class="credited">已记入今日功课：' + esc(item.name) + ' ' + n + ' / ' + item.target + ' ' + esc(item.unit || '遍') + '</p>';
-        if (!multi && n < item.target) h += '<button class="nav-btn" data-act="readAgain">再读一遍 · 回到开头</button>';
+        var tday = S.rec[dkey(new Date())] || {};
+        var nr = (tday.r || {})[su.id] || 0;
+        var msg = '读诵圆满，今日第 ' + nr + ' ' + sutraUnit(su.id) + su.name;
+        if (item) msg += '<br>已记入今日功课：' + esc(item.name) + ' ' + ((tday.h || {})[item.id] || 0) + ' / ' + item.target + ' ' + esc(item.unit || '遍');
+        h += '<p class="credited">' + msg + '<br><button class="link" style="min-height:28px" data-act="undoSutra">点错了，撤销</button></p>';
+        if (!multi) h += '<button class="nav-btn" data-act="readAgain">再读一遍 · 回到开头</button>';
       } else {
-        h += '<button class="finish btn-accent" data-act="finishSutra">读诵圆满 · 记入今日功课</button>';
+        h += '<button class="finish btn-accent" data-act="finishSutra">' + (item ? '读诵圆满 · 记入今日功课' : '读诵圆满 · 记一' + sutraUnit(su.id)) + '</button>';
       }
     }
     if (multi) {
@@ -427,6 +431,25 @@
       h += '</div>';
     }
 
+    /* 读经统计: completed readings (读诵圆满) */
+    h += '<div class="card" style="gap:12px"><span class="ttl">读经统计</span>';
+    SUTRAS.forEach(function (su) {
+      var tot = 0, mon = 0, today = 0, last = '';
+      for (var k3 in S.rec) {
+        var n3 = ((S.rec[k3].r || {})[su.id]) || 0;
+        if (!n3) continue;
+        tot += n3;
+        if (k3.slice(0, 8) === monthKey) mon += n3;
+        if (k3 === tk) today = n3;
+        if (k3 > last) last = k3;
+      }
+      var u = sutraUnit(su.id), lp = last.split('-');
+      h += '<div class="name-row"><div class="kv"><span>' + su.name + '</span><span class="r"><b class="serif">' + tot + '</b> ' + u + '</span></div>' +
+        '<div class="name-meta">' + (tot ? '本月 ' + mon + ' ' + u + ' · 今日 ' + today + ' ' + u + ' · 最近 ' + (+lp[1]) + '月' + (+lp[2]) + '日'
+          : '还没有记录。读到最后点「读诵圆满」就会记一' + u) + '</div></div>';
+    });
+    h += '</div>';
+
     /* 修行日历 */
     h += '<span class="sec-ttl">修行日历</span>';
     var base = new Date(now.getFullYear(), now.getMonth() + S.monthOff, 1);
@@ -457,6 +480,10 @@
       for (var nm in selD.c) {
         if (selD.c[nm] > 0) h += '<div class="kv"><span>' + esc(nm) + '</span><span class="r">' + selD.c[nm] + ' 声</span></div>';
       }
+      SUTRAS.forEach(function (su) {
+        var nr = (selD.r || {})[su.id] || 0;
+        if (nr) h += '<div class="kv"><span>读诵' + su.name + '</span><span class="r">' + nr + ' ' + sutraUnit(su.id) + '</span></div>';
+      });
       if (S.items.length) {
         h += '<div class="hr"></div>';
         S.items.forEach(function (it) {
@@ -743,9 +770,15 @@
     retrySutra: function () { S.errs[S.sid] = false; render(); },
     finishSutra: function () {
       var item = itemForSutra(S.sid);
-      if (!item) return;
       S.credited = true;
-      bump('h', item.id, 1);
+      bump('r', S.sid, 1);
+      if (item) bump('h', item.id, 1);
+    },
+    undoSutra: function () {
+      var item = itemForSutra(S.sid);
+      S.credited = false;
+      bump('r', S.sid, -1);
+      if (item) bump('h', item.id, -1);
     },
     readAgain: function () { set({ credited: false }); toTop(); },
 
